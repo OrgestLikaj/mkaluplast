@@ -12,6 +12,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # Skip the upload (instead of failing) until the FTP secrets are configured.
+      HAS_FTP: ${{ secrets.FTP_SERVER != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +33,7 @@ jobs:
       # Required repo secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_SERVER_DIR
       #   FTP_SERVER_DIR examples: "public_html/" (live) or "new.mkaluplast.com/" (staging subdomain)
       - name: Upload via FTPS
+        if: env.HAS_FTP == 'true'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -41,3 +45,7 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
+
+      - name: FTP not configured
+        if: env.HAS_FTP != 'true'
+        run: echo "::notice::Built OK. Upload skipped — add the FTP_* repo secrets to deploy to Namecheap."

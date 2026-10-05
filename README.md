@@ -32,6 +32,10 @@ All content is in `src/content/`, one folder per language:
 
 `translationKey` links an English entry to its Italian and Albanian translations, so all of them must use the same value. UI labels (buttons, menu) live in `src/i18n/ui.ts`; the language-switcher flags are `public/flags/<locale>.svg` (from the MIT-licensed flag-icons project).
 
+## Preview on GitHub Pages
+
+`.github/workflows/pages.yml` publishes a noindex preview to `https://orgestlikaj.github.io/mkaluplast/` on every push to `main` (enable once: repo → Settings → Pages → Source: **GitHub Actions**). `scripts/rebase-dist.mjs` prefixes the root-relative links for the `/mkaluplast/` sub-path. The quote form and `/admin` need PHP, so they only work on Namecheap.
+
 ## One-time server setup (Namecheap cPanel)
 
 1. **PHP version:** cPanel → *Select PHP Version* → 8.1 or newer.
