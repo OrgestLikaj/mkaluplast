@@ -1,0 +1,332 @@
+---
+import Icon from './Icon.astro';
+import type { CollectionEntry } from 'astro:content';
+import { splitId } from '../lib/content';
+import { productUrl, useTranslations, type Lang } from '../i18n/ui';
+
+// Image-led product card for the homepage bento grid.
+interface Props {
+  product: CollectionEntry<'products'>;
+  lang: Lang;
+  /** Shows "03/10" in the corner when both are given. */
+  index?: number;
+  total?: number;
+  size?: 'wide' | 'full' | '';
+  eager?: boolean;
+  /** Omit the category label when the surrounding section already names it. */
+  hideCategory?: boolean;
+}
+const { product, lang, index, total, size = '', eager = false, hideCategory = false } = Astro.props;
+const t = useTranslations(lang);
+const { title, summary, heroImage, heroAlt, category, types } = product.data;
+
+const MAX_CHIPS = 3;
+const chips = types.slice(0, MAX_CHIPS).map((ty) => ty.name);
+const more = types.length - chips.length;
+const count = types.length;
+const countLabel = count > 0 ? `${count} ${t(count === 1 ? 'product.type' : 'product.typesCount')}` : '';
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<a class:list={['tile', size]} href={productUrl(lang, splitId(product.id).slug)}>
+  <img
+    src={heroImage}
+    alt={heroAlt || title}
+    loading={eager ? 'eager' : 'lazy'}
+    decoding="async"
+    width="1200"
+    height="900"
+  />
+  <span class="shade" aria-hidden="true"></span>
+
+  {
+    index !== undefined && total !== undefined && (
+      <span class="idx" aria-hidden="true">
+        {pad(index + 1)}
+        <span>/{pad(total)}</span>
+      </span>
+    )
+  }
+  <span class="go" aria-hidden="true"><Icon name="arrow-up-right" size={20} /></span>
+
+  <span class="content">
+    <span class="head">
+      {
+        hideCategory ? (
+          countLabel && <span class="cat">{countLabel}</span>
+        ) : (
+          <span class="cat">
+            {t(`cat.${category}`)}
+            {countLabel && <span class="count">&nbsp;·&nbsp;{countLabel}</span>}
+          </span>
+        )
+      }
+      <span class="title">{title}</span>
+    </span>
+    <span class="reveal">
+      <span class="reveal-inner">
+        <span class="summary">{summary}</span>
+        {
+          chips.length > 0 && (
+            <span class="chips">
+              {chips.map((c) => (
+                <span class="chip">{c}</span>
+              ))}
+              {more > 0 && <span class="chip chip--more">+{more}</span>}
+            </span>
+          )
+        }
+      </span>
+    </span>
+  </span>
+</a>
+
+<style>
+  .tile {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--radius-lg);
+    background: var(--ink);
+    color: #fff;
+    text-decoration: none;
+    aspect-ratio: 4 / 5;
+  }
+  @media (min-width: 640px) {
+    .tile {
+      aspect-ratio: 1 / 1;
+    }
+    .tile.full {
+      aspect-ratio: 2 / 1;
+    }
+  }
+  @media (min-width: 1000px) {
+    .tile.wide {
+      aspect-ratio: 3 / 2;
+    }
+    .tile.full {
+      aspect-ratio: 3 / 1;
+    }
+  }
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    transform: scale(1.001);
+    transition: transform 1.4s var(--ease);
+  }
+  .shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(to top, rgba(10, 13, 34, 0.92) 0%, rgba(10, 13, 34, 0.55) 32%, rgba(10, 13, 34, 0) 62%),
+      linear-gradient(to bottom, rgba(10, 13, 34, 0.35) 0%, rgba(10, 13, 34, 0) 22%);
+    transition: opacity 0.6s var(--ease);
+  }
+  /* Deeper scrim fades in on hover so the expanded text stays legible on bright photos */
+  .shade::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10, 13, 34, 0.9) 0%, rgba(10, 13, 34, 0.62) 50%, rgba(10, 13, 34, 0.18) 100%);
+    opacity: 0;
+    transition: opacity 0.6s var(--ease);
+  }
+  .tile:hover .shade::after,
+  .tile:focus-visible .shade::after {
+    opacity: 1;
+  }
+  @media (hover: none), (max-width: 639px) {
+    .shade::after {
+      opacity: 1;
+    }
+  }
+
+  .idx {
+    position: absolute;
+    top: 1.4rem;
+    left: 1.5rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .idx span {
+    opacity: 0.55;
+  }
+  .go {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.1rem;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition:
+      background 0.4s var(--ease),
+      color 0.4s var(--ease),
+      transform 0.4s var(--ease);
+  }
+
+  .content {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    text-shadow: 0 1px 12px rgba(10, 13, 34, 0.35);
+  }
+  .idx {
+    text-shadow: 0 1px 8px rgba(10, 13, 34, 0.5);
+  }
+  @media (min-width: 1000px) {
+    .content {
+      padding: 1.75rem 2rem 1.9rem;
+    }
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+  }
+  .cat {
+    font-family: var(--font-display);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 0.6rem;
+  }
+  .count {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .title {
+    font-family: var(--font-display);
+    font-size: clamp(1.28rem, 1.76vw, 1.63rem);
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    max-width: 18ch;
+  }
+  .wide .title,
+  .full .title {
+    font-size: clamp(1.41rem, 2.29vw, 2.11rem);
+  }
+
+  /* Summary + chips expand on hover/focus (grid 0fr → 1fr animates height) */
+  .reveal {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.6s var(--ease);
+  }
+  .reveal-inner {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+  }
+  .summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.85rem;
+    max-width: 46ch;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.82);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .chip {
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.78rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .chip--more {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  @media (hover: hover) and (min-width: 640px) {
+    .reveal {
+      grid-template-rows: 0fr;
+    }
+    .reveal-inner {
+      opacity: 0;
+      transform: translateY(8px);
+      transition:
+        opacity 0.45s var(--ease),
+        transform 0.6s var(--ease);
+    }
+    .tile:hover .reveal,
+    .tile:focus-visible .reveal {
+      grid-template-rows: 1fr;
+    }
+    .tile:hover .reveal-inner,
+    .tile:focus-visible .reveal-inner {
+      opacity: 1;
+      transform: none;
+      transition-delay: 0.08s;
+    }
+  }
+
+  /* Full-width banners have room: title left, details right, always shown */
+  @media (min-width: 1000px) {
+    .full .content {
+      display: grid;
+      grid-template-columns: 1fr minmax(0, 440px);
+      align-items: end;
+      gap: 3rem;
+      padding: 2.25rem 2.5rem;
+    }
+    .full .reveal {
+      grid-template-rows: 1fr;
+    }
+    .full .reveal-inner {
+      opacity: 1;
+      transform: none;
+    }
+    .full .summary {
+      margin-top: 0;
+    }
+    .full .shade::after {
+      opacity: 1;
+      background: linear-gradient(to top, rgba(10, 13, 34, 0.88) 0%, rgba(10, 13, 34, 0.45) 45%, rgba(10, 13, 34, 0.05) 100%);
+    }
+  }
+
+  .tile:hover img,
+  .tile:focus-visible img {
+    transform: scale(1.06);
+  }
+  .tile:hover .go,
+  .tile:focus-visible .go {
+    background: #fff;
+    color: var(--ink);
+    transform: rotate(45deg);
+  }
+  .tile:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 4px;
+  }
+</style>

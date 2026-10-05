@@ -1,0 +1,496 @@
+---
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import CtaBand from '../components/CtaBand.astro';
+import PartnerCards from '../components/PartnerCards.astro';
+import { getPage, site } from '../lib/content';
+import { companyStats } from '../lib/stats';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const page = (await getPage(lang, 'about'))!;
+const { Content } = await render(page);
+const d = page.data;
+
+const stats = await companyStats(lang, d.foundedYear);
+
+const fallbackIcons = ['award', 'shield', 'ruler', 'wrench', 'layers', 'building'] as const;
+type IconName = (typeof fallbackIcons)[number];
+const iconFor = (name: string | undefined, i: number): IconName =>
+  (fallbackIcons as readonly string[]).includes(name ?? '') ? (name as IconName) : fallbackIcons[i % fallbackIcons.length];
+---
+
+<Base lang={lang} title={d.title} description={d.seoDescription || d.lead} image={d.heroImage} alternates={routes.about}>
+  <!-- Hero -->
+  <section class="a-hero">
+    <div class="container a-hero-inner">
+      <div class="a-hero-text">
+        <ol class="breadcrumbs">
+          <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+          <li aria-current="page">{t('nav.about')}</li>
+        </ol>
+        <p class="eyebrow">{t('about.eyebrow')}</p>
+        <h1>{d.headline || d.title}</h1>
+        {d.lead && <p class="lead">{d.lead}</p>}
+        <div class="a-cta">
+          <a class="btn" href={route(lang, 'contact')}>
+            {t('cta.button')}
+            <Icon name="arrow" />
+          </a>
+          <a class="btn btn--ghost" href={route(lang, 'products')}>{t('home.explore')}</a>
+        </div>
+      </div>
+
+      {
+        d.heroImage && (
+          <div class="collage">
+            <img class="c-main" src={d.heroImage} alt="" width="1000" height="1250" fetchpriority="high" />
+            {d.secondaryImage && (
+              <img class="c-second" src={d.secondaryImage} alt="" width="500" height="500" loading="lazy" />
+            )}
+            {d.foundedYear && (
+              <span class="badge">
+                <span>{t('about.since')}</span>
+                <strong>{d.foundedYear}</strong>
+              </span>
+            )}
+          </div>
+        )
+      }
+    </div>
+
+    {
+      stats.length > 0 && (
+        <div class="container">
+          <dl class="stats">
+            {stats.map((s) => (
+              <div>
+                <dt>{s.label}</dt>
+                <dd>{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )
+    }
+  </section>
+
+  <!-- Story -->
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow" data-reveal>{t('about.story')}</p>
+      {d.statement && <p class="statement" data-reveal>{d.statement}</p>}
+      <div class="story prose" data-reveal style="--delay:.1s">
+        <Content />
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  {
+    d.timeline.length > 0 && (
+      <section class="section section--stone">
+        <div class="container">
+          <div class="section-head" data-reveal>
+            <p class="eyebrow">{t('about.journey')}</p>
+            <h2>{t('about.journeyTitle')}</h2>
+          </div>
+          <ol class="timeline" style={`--cols:${Math.min(d.timeline.length, 4)}`}>
+            {d.timeline.map((m, i) => (
+              <li data-reveal style={`--delay:${i * 0.1}s`}>
+                <span class="dot" aria-hidden="true" />
+                <span class="t-label">{m.label}</span>
+                <h3>{m.title}</h3>
+                <p>{m.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Mission -->
+  {
+    d.mission && (
+      <section class="mission">
+        <div class="container mission-inner" data-reveal>
+          <p class="eyebrow">{t('about.mission')}</p>
+          <blockquote>
+            <p>{d.mission}</p>
+          </blockquote>
+          <p class="sign">— {site.name}</p>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Why -->
+  {
+    d.reasons.length > 0 && (
+      <section class="section">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('about.why')}</p>
+              <h2>{t('about.whyTitle')}</h2>
+            </div>
+          </div>
+          <ul class="reasons">
+            {d.reasons.map((r, i) => (
+              <li data-reveal style={`--delay:${(i % 3) * 0.08}s`}>
+                <span class="r-icon">
+                  <Icon name={iconFor(r.icon, i)} size={26} />
+                </span>
+                <h3>{r.title}</h3>
+                <p>{r.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Partners -->
+  {
+    site.partners.length > 0 && (
+      <section class="section section--stone">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('partners.eyebrow')}</p>
+              <h2>{t('home.partners')}</h2>
+            </div>
+            <p>{t('partners.text')}</p>
+          </div>
+          <PartnerCards lang={lang} />
+        </div>
+      </section>
+    )
+  }
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  /* ---------- Hero ---------- */
+  .a-hero {
+    padding-top: var(--header-h);
+    background: var(--stone-50);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .a-hero-inner {
+    display: grid;
+    gap: 3.5rem;
+    align-items: center;
+    padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 4.5rem);
+  }
+  @media (min-width: 1000px) {
+    .a-hero-inner {
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+    }
+  }
+  .a-hero h1 {
+    font-size: clamp(2.18rem, 4.54vw, 4.03rem);
+    max-width: 12ch;
+    margin-bottom: 1.5rem;
+  }
+  .a-hero .lead {
+    max-width: 46ch;
+  }
+  .a-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+  }
+
+  .collage {
+    position: relative;
+    padding: 0 0 12% 14%;
+  }
+  .c-main {
+    width: 100%;
+    aspect-ratio: 4 / 4.4;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+  }
+  .c-second {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 44%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    border: 8px solid var(--stone-50);
+    box-shadow: 0 30px 60px -30px rgba(14, 19, 48, 0.45);
+  }
+  .badge {
+    position: absolute;
+    top: 8%;
+    left: calc(14% - 2.75rem);
+    display: grid;
+    place-content: center;
+    text-align: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    box-shadow: 0 20px 40px -20px rgba(39, 50, 114, 0.7);
+    line-height: 1.1;
+  }
+  .badge span {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .badge strong {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 1.5rem;
+    margin: 0;
+    padding-block: 2.5rem 3rem;
+    border-top: 1px solid var(--line);
+  }
+  @media (min-width: 800px) {
+    .stats {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .stats div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .stats dd {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(2.02rem, 3.78vw, 3.02rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stats dt {
+    margin-top: 0.6rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- Story ---------- */
+  .statement {
+    font-family: var(--font-display);
+    font-size: clamp(1.41rem, 2.64vw, 2.29rem);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    max-width: 30ch;
+    margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+    text-wrap: balance;
+  }
+  .story {
+    max-width: none;
+    color: var(--text-muted);
+  }
+  @media (min-width: 900px) {
+    .story {
+      columns: 2;
+      column-gap: 4rem;
+      margin-left: auto;
+      width: min(100%, 980px);
+    }
+    .story :global(p) {
+      break-inside: avoid;
+    }
+  }
+
+  /* ---------- Timeline ---------- */
+  .timeline {
+    --dot: 14px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    display: grid;
+    gap: 2.5rem;
+    padding-left: 2rem;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--dot) / 2 - 0.5px);
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 1px;
+    background: var(--stone-400);
+  }
+  .timeline li {
+    position: relative;
+  }
+  .dot {
+    position: absolute;
+    left: -2rem;
+    top: 0.35rem;
+    width: var(--dot);
+    height: var(--dot);
+    border-radius: 50%;
+    background: var(--stone-50);
+    border: 2px solid var(--navy);
+  }
+  .timeline li:first-child .dot,
+  .timeline li:last-child .dot {
+    background: var(--navy);
+  }
+  .t-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1.41rem, 2.29vw, 1.94rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+  .timeline h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .timeline p {
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin: 0;
+  }
+  @media (min-width: 900px) {
+    .timeline {
+      grid-template-columns: repeat(var(--cols, 4), 1fr);
+      gap: 2.5rem;
+      padding-left: 0;
+      padding-top: 2.75rem;
+    }
+    .timeline::before {
+      left: 0;
+      right: 0;
+      top: calc(var(--dot) / 2 - 0.5px);
+      bottom: auto;
+      width: auto;
+      height: 1px;
+    }
+    .dot {
+      left: 0;
+      top: -2.75rem;
+    }
+  }
+
+  /* ---------- Mission ---------- */
+  .mission {
+    background:
+      radial-gradient(90% 120% at 0% 100%, rgba(198, 211, 227, 0.12), transparent 60%),
+      var(--ink);
+    color: #d9dcea;
+    padding-block: clamp(5rem, 10vw, 8rem);
+  }
+  .mission blockquote p {
+    max-width: 26ch;
+  }
+  .mission .eyebrow {
+    color: var(--steel);
+  }
+  blockquote {
+    margin: 0;
+    position: relative;
+  }
+  blockquote p {
+    font-family: var(--font-display);
+    font-size: clamp(1.51rem, 3.02vw, 2.6rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin: 0;
+    text-wrap: balance;
+  }
+  blockquote p::before {
+    content: '“';
+    color: var(--steel);
+    margin-right: 0.05em;
+  }
+  blockquote p::after {
+    content: '”';
+    color: var(--steel);
+  }
+  .sign {
+    margin: 2rem 0 0;
+    color: #a8adc4;
+    font-family: var(--font-display);
+    font-weight: 500;
+  }
+
+  /* ---------- Reasons ---------- */
+  .reasons {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .reasons {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1000px) {
+    .reasons {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .reasons li {
+    padding: 2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease);
+  }
+  .reasons li:hover {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -45px rgba(14, 19, 48, 0.35);
+  }
+  .r-icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--steel-50);
+    color: var(--navy);
+    margin-bottom: 1.75rem;
+  }
+  .reasons h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .reasons p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.97rem;
+  }
+</style>

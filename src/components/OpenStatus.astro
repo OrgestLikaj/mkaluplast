@@ -1,0 +1,122 @@
+---
+// "Open now · Closes at 18:00" pill, computed in the browser for the business's
+// time zone. Renders nothing visible without JS or without a schedule.
+import { site } from '../lib/content';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const schedule = site.schedule;
+---
+
+{
+  schedule && (
+    <span
+      class="status"
+      data-open-status
+      data-lang={lang}
+      data-days={schedule.days.join(',')}
+      data-open={schedule.open}
+      data-close={schedule.close}
+      data-tz={schedule.timezone}
+      data-l-open={t('contact.openNow')}
+      data-l-closed={t('contact.closedNow')}
+      data-l-closes={t('contact.closesAt')}
+      data-l-opens={t('contact.opensAt')}
+      hidden
+    >
+      <span class="dot" aria-hidden="true" />
+      <span data-label />
+    </span>
+  )
+}
+
+<style>
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+  }
+  .status.is-open .dot {
+    background: #34d399;
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    70% {
+      box-shadow: 0 0 0 7px rgba(52, 211, 153, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+    }
+  }
+</style>
+
+<script>
+  const toMinutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  for (const el of document.querySelectorAll<HTMLElement>('[data-open-status]')) {
+    const d = el.dataset;
+    const days = (d.days ?? '').split(',').filter(Boolean).map(Number);
+    if (!days.length || !d.open || !d.close) continue;
+
+    const render = () => {
+      // Current weekday and time in the business's time zone
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: d.tz || undefined,
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).formatToParts(new Date());
+      const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+      const today = WEEKDAYS.indexOf(get('weekday'));
+      const now = Number(get('hour')) * 60 + Number(get('minute'));
+      const open = toMinutes(d.open!);
+      const close = toMinutes(d.close!);
+
+      const isOpen = days.includes(today) && now >= open && now < close;
+      let text: string;
+      if (isOpen) {
+        text = `${d.lOpen} · ${d.lCloses} ${d.close}`;
+      } else {
+        // Next opening: later today, or the next scheduled day
+        let offset = days.includes(today) && now < open ? 0 : 1;
+        while (offset < 8 && !days.includes((today + offset) % 7)) offset++;
+        const dayName =
+          offset === 0
+            ? ''
+            : new Intl.DateTimeFormat(d.lang, { weekday: 'short', timeZone: 'UTC' }).format(
+                // 7 Jan 2024 was a Sunday, so +n gives weekday n
+                new Date(Date.UTC(2024, 0, 7 + ((today + offset) % 7))),
+              ) + ' ';
+        text = `${d.lClosed} · ${d.lOpens} ${dayName}${d.open}`;
+      }
+      el.classList.toggle('is-open', isOpen);
+      el.querySelector('[data-label]')!.textContent = text;
+      el.hidden = false;
+    };
+    render();
+    setInterval(render, 60_000);
+  }
+</script>

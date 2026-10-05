@@ -1,0 +1,413 @@
+---
+import Icon from './Icon.astro';
+import { getProducts, groupByCategory } from '../lib/content';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const products = await getProducts(lang);
+const categories = groupByCategory(products).map((g) => g.cat);
+
+// Lets ?product=<translationKey> (from product pages) pre-tick the matching category.
+const productCats = Object.fromEntries(products.map((p) => [p.data.translationKey, p.data.category]));
+
+const projectTypes = [
+  { value: 'new', label: t('contact.typeNew') },
+  { value: 'renovation', label: t('contact.typeRenovation') },
+  { value: 'commercial', label: t('contact.typeCommercial') },
+];
+const methods = [
+  { value: 'phone', label: t('contact.phone'), icon: 'phone' },
+  { value: 'email', label: t('contact.email'), icon: 'mail' },
+] as const;
+---
+
+<div class="quote" data-quote>
+  <form
+    class="form"
+    method="post"
+    action="/send.php"
+    data-quote-form
+    data-product-cats={JSON.stringify(productCats)}
+    data-variant-message={t('contact.variantMessage')}
+    novalidate
+  >
+    <input type="hidden" name="lang" value={lang} />
+    <input type="hidden" name="ts" value="" data-ts />
+    <input type="hidden" name="product" value="" data-product />
+    <input type="hidden" name="variant" value="" data-variant />
+    <!-- Honeypot: real users never see or fill this -->
+    <div class="hp" aria-hidden="true">
+      <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+    </div>
+
+    <fieldset class="group">
+      <legend>
+        {t('contact.interests')}
+        <span class="hint">{t('contact.interestsHint')}</span>
+      </legend>
+      <div class="chips">
+        {
+          categories.map((cat) => (
+            <label class="chip">
+              <input type="checkbox" name="interests[]" value={cat} data-cat={cat} />
+              <span>
+                <Icon name="check" size={14} />
+                {t(`cat.${cat}`)}
+              </span>
+            </label>
+          ))
+        }
+        <label class="chip">
+          <input type="checkbox" name="interests[]" value="unsure" />
+          <span>
+            <Icon name="check" size={14} />
+            {t('contact.productAny')}
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset class="group">
+      <legend>{t('contact.projectType')}</legend>
+      <div class="chips">
+        {
+          projectTypes.map((pt) => (
+            <label class="chip">
+              <input type="radio" name="projectType" value={pt.value} />
+              <span>{pt.label}</span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+
+    <div class="row">
+      <label class="field">
+        <span>{t('contact.name')} *</span>
+        <input type="text" name="name" required autocomplete="name" maxlength="120" />
+      </label>
+      <label class="field">
+        <span>{t('contact.location')}</span>
+        <input type="text" name="location" autocomplete="address-level2" maxlength="120" placeholder={t('contact.locationHint')} />
+      </label>
+    </div>
+    <div class="row">
+      <label class="field">
+        <span>{t('contact.email')} *</span>
+        <input type="email" name="email" required autocomplete="email" maxlength="160" />
+      </label>
+      <label class="field">
+        <span>{t('contact.phone')}</span>
+        <input type="tel" name="phone" autocomplete="tel" maxlength="40" />
+      </label>
+    </div>
+
+    <fieldset class="group">
+      <legend>{t('contact.method')}</legend>
+      <div class="chips">
+        {
+          methods.map((m, i) => (
+            <label class="chip">
+              <input type="radio" name="contactMethod" value={m.value} checked={i === 0} />
+              <span>
+                <Icon name={m.icon} size={15} />
+                {m.label}
+              </span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+
+    <label class="field">
+      <span>{t('contact.message')} *</span>
+      <textarea name="message" rows="5" required maxlength="4000" placeholder={t('contact.messageHint')}></textarea>
+    </label>
+
+    <label class="consent">
+      <input type="checkbox" name="consent" value="1" required />
+      <span>{t('contact.consent')}</span>
+    </label>
+
+    <div class="actions">
+      <button class="btn" type="submit" data-sending={t('contact.sending')}>
+        <span data-label>{t('contact.send')}</span>
+        <Icon name="arrow" />
+      </button>
+      <p class="error" role="alert" hidden data-error>{t('contact.error')}</p>
+    </div>
+  </form>
+
+  <div class="success" hidden data-success tabindex="-1">
+    <span class="success-icon"><Icon name="check" size={30} /></span>
+    <h3>{t('contact.successTitle')}</h3>
+    <p>{t('contact.success')}</p>
+    <button class="btn btn--ghost" type="button" data-again>{t('contact.again')}</button>
+  </div>
+</div>
+
+<style>
+  .form {
+    display: grid;
+    gap: 1.6rem;
+  }
+  .row {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  legend,
+  .field > span {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 0;
+  }
+  .hint {
+    margin-left: 0.4rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  /* Selectable pill chips (checkbox / radio) */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .chip {
+    position: relative;
+    cursor: pointer;
+  }
+  .chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .chip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 42px;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--stone-200);
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--ink);
+    transition:
+      background 0.2s,
+      border-color 0.2s,
+      color 0.2s;
+  }
+  .chip span :global(svg) {
+    display: none;
+  }
+  .chip input[type='radio'] + span :global(svg) {
+    display: inline;
+  }
+  .chip:hover span {
+    border-color: var(--navy);
+  }
+  .chip input:checked + span {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+  .chip input:checked + span :global(svg) {
+    display: inline;
+  }
+  .chip input:focus-visible + span {
+    outline: 2px solid var(--navy);
+    outline-offset: 2px;
+  }
+
+  .field {
+    display: grid;
+  }
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'],
+  textarea {
+    width: 100%;
+    min-height: 52px;
+    padding: 0.8rem 1rem;
+    background: #fff;
+    border: 1px solid var(--stone-200);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 140px;
+  }
+  input:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(39, 50, 114, 0.12);
+  }
+  .form.was-validated input:invalid,
+  .form.was-validated textarea:invalid {
+    border-color: #b42318;
+  }
+  .consent {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .consent input {
+    width: 18px;
+    height: 18px;
+    margin-top: 0.2rem;
+    accent-color: var(--navy);
+    flex: none;
+  }
+  .form.was-validated .consent input:invalid + span {
+    color: #b42318;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+  }
+  .btn[disabled] {
+    opacity: 0.6;
+    cursor: wait;
+  }
+  .error {
+    margin: 0;
+    color: #b42318;
+    font-size: 0.92rem;
+  }
+  .hp {
+    position: absolute;
+    left: -9999px;
+  }
+
+  .success {
+    display: grid;
+    justify-items: start;
+    gap: 0.25rem;
+    padding: 1rem 0;
+  }
+  .success:focus {
+    outline: none;
+  }
+  .success-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    margin-bottom: 1.25rem;
+  }
+  .success h3 {
+    margin: 0;
+    font-size: 1.6rem;
+  }
+  .success p {
+    color: var(--text-muted);
+    max-width: 44ch;
+    margin: 0.5rem 0 1.5rem;
+  }
+</style>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-quote]')) {
+    const form = root.querySelector<HTMLFormElement>('[data-quote-form]')!;
+    const success = root.querySelector<HTMLElement>('[data-success]')!;
+    const errorEl = form.querySelector<HTMLElement>('[data-error]')!;
+    const ts = form.querySelector<HTMLInputElement>('[data-ts]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    const label = button.querySelector<HTMLElement>('[data-label]')!;
+    ts.value = String(Date.now());
+
+    const params = new URLSearchParams(location.search);
+    // A specific system chosen on a product page (?variant=…): record it and start the message
+    const variant = params.get('variant')?.slice(0, 80);
+    if (variant) {
+      form.querySelector<HTMLInputElement>('[data-variant]')!.value = variant;
+      const message = form.querySelector<HTMLTextAreaElement>('textarea[name=message]')!;
+      if (!message.value) message.value = `${form.dataset.variantMessage} ${variant}. `;
+    }
+
+    // Pre-tick the category for ?product=<translationKey>
+    const wanted = params.get('product');
+    if (wanted) {
+      const cats: Record<string, string> = JSON.parse(form.dataset.productCats || '{}');
+      const cat = cats[wanted];
+      if (cat) {
+        form.querySelector<HTMLInputElement>('[data-product]')!.value = wanted;
+        const box = form.querySelector<HTMLInputElement>(`[data-cat="${CSS.escape(cat)}"]`);
+        if (box) box.checked = true;
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.hidden = true;
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        form.querySelector<HTMLElement>(':invalid')?.focus();
+        return;
+      }
+      const original = label.textContent;
+      button.disabled = true;
+      label.textContent = button.dataset.sending ?? '…';
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'send failed');
+        form.reset();
+        form.classList.remove('was-validated');
+        form.hidden = true;
+        success.hidden = false;
+        success.focus();
+      } catch {
+        errorEl.hidden = false;
+      } finally {
+        button.disabled = false;
+        label.textContent = original;
+        ts.value = String(Date.now());
+      }
+    });
+
+    root.querySelector('[data-again]')!.addEventListener('click', () => {
+      success.hidden = true;
+      form.hidden = false;
+      form.querySelector<HTMLElement>('input:not([type=hidden])')?.focus();
+    });
+  }
+</script>

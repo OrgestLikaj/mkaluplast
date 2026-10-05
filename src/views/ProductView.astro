@@ -1,0 +1,710 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import ProductTile from '../components/ProductTile.astro';
+import TypeExplorer from '../components/TypeExplorer.astro';
+import Gallery from '../components/Gallery.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { getProducts, alternatesFor, site } from '../lib/content';
+import { useTranslations, route, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  product: CollectionEntry<'products'>;
+}
+const { lang, product } = Astro.props;
+const t = useTranslations(lang);
+const { Content, headings } = await render(product);
+const d = product.data;
+
+const all = await getProducts(lang);
+const sameCat = all.filter((p) => p.id !== product.id && p.data.category === d.category);
+const related = [...sameCat, ...all.filter((p) => p.id !== product.id && p.data.category !== d.category)].slice(0, 3);
+
+const alternates = await alternatesFor('products', d.translationKey);
+const quoteHref = `${route(lang, 'contact')}?product=${encodeURIComponent(d.translationKey)}#quote`;
+
+// Partner whose systems appear in this product's types (e.g. greenEvolution → Salamander).
+const typeNames = d.types.map((ty) => ty.name.toLowerCase()).join(' ');
+const partner = site.partners.find((p) => p.systems.some((s) => typeNames.includes(s.toLowerCase())));
+
+// Pick a benefit icon from keywords in the title (EN + IT).
+const benefitIcon = (title: string) => {
+  const s = title.toLowerCase();
+  if (/therm|insul|isol|energ|heat|calor/.test(s)) return 'thermo';
+  if (/noise|sound|acoust|rumor|acust/.test(s)) return 'sound';
+  if (/secur|sicur|burglar|protect|protez|blind|safe/.test(s)) return 'shield';
+  if (/mainten|manuten|durab|durat|weather|resist/.test(s)) return 'wrench';
+  if (/measure|misura|custom|personal|size/.test(s)) return 'ruler';
+  if (/design|style|stile|estet|look|light|luce/.test(s)) return 'layers';
+  return 'check';
+};
+
+const hasBody = Boolean(product.body?.trim());
+const sections = [
+  d.features.length > 0 && { id: 'benefits', label: t('product.features') },
+  hasBody && { id: 'overview', label: t('product.overview') },
+  ...headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, label: h.text })),
+  d.types.length > 0 && { id: 'types', label: t('product.types') },
+  d.gallery.length > 0 && { id: 'gallery', label: t('product.gallery') },
+].filter(Boolean) as { id: string; label: string }[];
+
+const productLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: d.title,
+  description: d.seoDescription || d.summary,
+  image: new URL(d.heroImage, Astro.site).href,
+  brand: { '@type': 'Brand', name: site.name },
+};
+const crumbsLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: site.name, item: new URL(route(lang, 'home'), Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: t('nav.products'), item: new URL(route(lang, 'products'), Astro.site).href },
+    { '@type': 'ListItem', position: 3, name: d.title },
+  ],
+};
+---
+
+<Base
+  lang={lang}
+  title={d.title}
+  description={d.seoDescription || d.summary}
+  image={d.heroImage}
+  alternates={alternates}
+  overlayHeader
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify([productLd, crumbsLd])} />
+
+  <!-- Hero -->
+  <section class="p-hero">
+    <img class="p-hero-img" src={d.heroImage} alt={d.heroAlt || d.title} fetchpriority="high" width="2000" height="1200" />
+    <div class="p-hero-shade" aria-hidden="true"></div>
+    <div class="container p-hero-inner">
+      <ol class="breadcrumbs crumbs-light">
+        <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+        <li><a href={route(lang, 'products')}>{t('nav.products')}</a></li>
+        <li aria-current="page">{d.title}</li>
+      </ol>
+      <p class="eyebrow">{t(`cat.${d.category}`)}</p>
+      <h1>{d.title}</h1>
+      <p class="p-sub">{d.summary}</p>
+      <div class="p-cta">
+        <a class="btn btn--light" href={quoteHref}>
+          {t('nav.quote')}
+          <Icon name="arrow" />
+        </a>
+        {
+          site.phone && (
+            <a class="btn btn--ghost-light" href={`tel:${site.phone}`}>
+              <Icon name="phone" />
+              {site.phoneDisplay || site.phone}
+            </a>
+          )
+        }
+      </div>
+      <ul class="facts">
+        {
+          d.types.length > 0 && (
+            <li>
+              <strong>{d.types.length}</strong>
+              {t(d.types.length === 1 ? 'product.type' : 'product.typesCount')}
+            </li>
+          )
+        }
+        {
+          partner && (
+            <li class="fact-partner">
+              <span>{t('product.systemsBy')}</span>
+              <img src={partner.logo} alt={partner.name} width="110" height="36" />
+            </li>
+          )
+        }
+        <li>
+          <Icon name="ruler" size={18} />
+          {t('product.madeToMeasure')}
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- In-page navigation -->
+  {
+    sections.length > 1 && (
+      <nav class="subnav" aria-label={t('product.sections')} data-subnav>
+        <div class="container subnav-inner">
+          <ul>
+            {sections.map((s) => (
+              <li>
+                <a href={`#${s.id}`} data-target={s.id}>
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a class="btn subnav-cta" href={quoteHref}>
+            {t('nav.quote')}
+          </a>
+        </div>
+      </nav>
+    )
+  }
+
+  <!-- Benefits -->
+  {
+    d.features.length > 0 && (
+      <section class="section" id="benefits">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('product.features')}</p>
+              <h2>{d.title}</h2>
+            </div>
+            {d.seoDescription && <p>{d.seoDescription}</p>}
+          </div>
+          <ul class="benefits">
+            {d.features.map((f, i) => (
+              <li data-reveal style={`--delay:${(i % 4) * 0.06}s`}>
+                <span class="b-icon">
+                  <Icon name={benefitIcon(f.title)} size={24} />
+                </span>
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Overview / technical data -->
+  {
+    hasBody && (
+      <section class="section section--stone" id="overview">
+        <div class="container body-grid">
+          <div class="prose" data-reveal>
+            <Content />
+          </div>
+          <aside class="aside" data-reveal style="--delay:.1s">
+            <div class="aside-card">
+              <p class="aside-title">
+                {t('product.ask')} {d.title}
+              </p>
+              <p>{t('cta.text')}</p>
+              <a class="btn" href={quoteHref}>
+                {t('cta.button')}
+                <Icon name="arrow" />
+              </a>
+              {site.phone && (
+                <a class="aside-link" href={`tel:${site.phone}`}>
+                  <Icon name="phone" size={18} />
+                  {site.phoneDisplay || site.phone}
+                </a>
+              )}
+            </div>
+          </aside>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Types -->
+  {
+    d.types.length > 0 && (
+      <section class="section" id="types">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('product.types')}</p>
+              <h2>{t('product.exploreTitle')}</h2>
+            </div>
+            {d.types.length > 1 && <p>{t('product.typesLead')}</p>}
+          </div>
+          <div data-reveal>
+            <TypeExplorer lang={lang} types={d.types} fallbackImage={d.heroImage} quoteHref={quoteHref} />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Gallery -->
+  {
+    d.gallery.length > 0 && (
+      <section class="section section--stone" id="gallery">
+        <div class="container">
+          <div class="section-head" data-reveal>
+            <p class="eyebrow">{t('product.gallery')}</p>
+            <h2>{d.title}</h2>
+          </div>
+          <div data-reveal>
+            <Gallery lang={lang} images={d.gallery} alt={d.title} />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Related -->
+  {
+    related.length > 0 && (
+      <section class="section">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('nav.products')}</p>
+              <h2>{t('product.related')}</h2>
+            </div>
+            <a class="link-arrow end" href={route(lang, 'products')}>
+              {t('nav.allProducts')}
+              <Icon name="arrow" />
+            </a>
+          </div>
+          <div class="related">
+            {related.map((p, i) => (
+              <div data-reveal style={`--delay:${i * 0.08}s`}>
+                <ProductTile product={p} lang={lang} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <CtaBand lang={lang} />
+
+  <!-- Mobile quick actions -->
+  <div class="mobile-bar">
+    {
+      site.phone && (
+        <a class="mb-call" href={`tel:${site.phone}`} aria-label={t('cta.call')}>
+          <Icon name="phone" />
+        </a>
+      )
+    }
+    <a class="btn mb-quote" href={quoteHref}>
+      {t('nav.quote')}
+      <Icon name="arrow" />
+    </a>
+  </div>
+</Base>
+
+<style>
+  /* ---------- Hero ---------- */
+  .p-hero {
+    position: relative;
+    min-height: min(88svh, 820px);
+    display: flex;
+    align-items: flex-end;
+    color: #fff;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .p-hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    animation: hero-zoom 14s var(--ease) both;
+  }
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.08);
+    }
+  }
+  .p-hero-shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(to top, rgba(10, 13, 34, 0.9) 0%, rgba(10, 13, 34, 0.45) 50%, rgba(10, 13, 34, 0.35) 100%),
+      linear-gradient(to right, rgba(10, 13, 34, 0.55), transparent 70%);
+  }
+  .p-hero-inner {
+    padding-top: calc(var(--header-h) + 3rem);
+    padding-bottom: clamp(2.5rem, 6vw, 4rem);
+  }
+  .crumbs-light {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .crumbs-light li + li::before {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .crumbs-light a:hover {
+    color: #fff;
+  }
+  .p-hero .eyebrow {
+    color: var(--steel);
+  }
+  .p-hero h1 {
+    color: #fff;
+    max-width: 14ch;
+    font-size: clamp(2.18rem, 5.04vw, 4.2rem);
+    margin-bottom: 1.25rem;
+  }
+  .p-sub {
+    max-width: 50ch;
+    font-size: clamp(0.99rem, 1.41vw, 1.17rem);
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 2rem;
+  }
+  .p-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .facts {
+    list-style: none;
+    margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2.5rem;
+    align-items: center;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .facts li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .facts strong {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1;
+  }
+  .fact-partner img {
+    height: 26px;
+    width: auto;
+    max-width: 110px;
+    object-fit: contain;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    background: #fff;
+    box-sizing: content-box;
+  }
+
+  /* ---------- Sub navigation ---------- */
+  .subnav {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 40;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .subnav-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .subnav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+  }
+  .subnav ul::-webkit-scrollbar {
+    display: none;
+  }
+  .subnav li a {
+    position: relative;
+    display: block;
+    padding: 1.1rem 0.85rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .subnav li:first-child a {
+    padding-left: 0;
+  }
+  .subnav li a::after {
+    content: '';
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0;
+    height: 2px;
+    background: var(--navy);
+    transform: scaleX(0);
+    transition: transform 0.3s var(--ease);
+  }
+  .subnav li:first-child a::after {
+    left: 0;
+  }
+  .subnav li a:hover,
+  .subnav li a.is-active {
+    color: var(--ink);
+  }
+  .subnav li a.is-active::after {
+    transform: scaleX(1);
+  }
+  .subnav-cta {
+    display: none;
+    min-height: 40px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.88rem;
+  }
+  @media (min-width: 900px) {
+    .subnav-cta {
+      display: inline-flex;
+    }
+  }
+  /* html's scroll-padding already clears the fixed header; add the sub-nav height */
+  section[id] {
+    scroll-margin-top: 56px;
+  }
+  .prose :global(h2[id]) {
+    scroll-margin-top: 80px;
+  }
+
+  /* ---------- Benefits ---------- */
+  .benefits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .benefits {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1100px) {
+    .benefits {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .benefits li {
+    padding: 1.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease);
+  }
+  .benefits li:hover {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -45px rgba(14, 19, 48, 0.35);
+  }
+  .b-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--steel-50);
+    color: var(--navy);
+    margin-bottom: 1.5rem;
+  }
+  .benefits h3 {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+  .benefits p {
+    color: var(--text-muted);
+    font-size: 0.96rem;
+    margin: 0;
+  }
+
+  /* ---------- Overview ---------- */
+  /* Spec cards produced by rehype-spec-cards (### Heading + list) */
+  .prose :global(.spec-grid) {
+    display: grid;
+    gap: 1rem;
+    margin: 1.5rem 0 2rem;
+  }
+  @media (min-width: 700px) {
+    .prose :global(.spec-grid) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .prose :global(.spec-card) {
+    padding: 1.4rem 1.5rem 1rem;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+  .prose :global(.spec-card h3) {
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+  }
+  .prose :global(.spec-card ul) {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  .prose :global(.spec-card li:last-child) {
+    border-bottom: 0;
+  }
+  .body-grid {
+    display: grid;
+    gap: 3rem;
+  }
+  @media (min-width: 1000px) {
+    .body-grid {
+      grid-template-columns: 1fr 360px;
+      gap: 6rem;
+    }
+  }
+  .aside-card {
+    position: sticky;
+    top: calc(var(--header-h) + 80px);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+  }
+  .aside-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .aside-card p:not(.aside-title) {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+  .aside-card .btn {
+    width: 100%;
+  }
+  .aside-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .aside-link:hover {
+    color: var(--navy);
+  }
+
+  /* ---------- Related ---------- */
+  .end {
+    justify-self: start;
+  }
+  @media (min-width: 900px) {
+    .end {
+      justify-self: end;
+    }
+  }
+  .related {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .related {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1000px) {
+    .related {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* ---------- Mobile quick actions ---------- */
+  .mobile-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.75rem var(--gutter) calc(0.75rem + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+  }
+  .mb-call {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 52px;
+    border: 1px solid var(--stone-200);
+    border-radius: var(--radius);
+    color: var(--ink);
+  }
+  .mb-quote {
+    flex: 1;
+  }
+  @media (min-width: 900px) {
+    .mobile-bar {
+      display: none;
+    }
+  }
+  @media (max-width: 899px) {
+    /* Keep the footer clear of the fixed bar */
+    :global(body) {
+      padding-bottom: 78px;
+    }
+  }
+</style>
+
+<script>
+  // Highlight the sub-nav link for the section currently in view.
+  const nav = document.querySelector<HTMLElement>('[data-subnav]');
+  if (nav) {
+    const list = nav.querySelector<HTMLElement>('ul')!;
+    const links = [...nav.querySelectorAll<HTMLAnchorElement>('[data-target]')];
+    const targets = links
+      .map((a) => document.getElementById(a.dataset.target!))
+      .filter((el): el is HTMLElement => Boolean(el));
+    let activeId = '';
+    const setActive = () => {
+      const line = window.innerHeight * 0.35;
+      let current: HTMLElement | undefined;
+      for (const el of targets) if (el.getBoundingClientRect().top <= line) current = el;
+      const id = current?.id ?? '';
+      if (id === activeId) return;
+      activeId = id;
+      links.forEach((a) => {
+        const on = a.dataset.target === id;
+        a.classList.toggle('is-active', on);
+        // Keep the active link visible in the horizontally scrolling bar (mobile)
+        if (on) list.scrollTo({ left: a.offsetLeft - 16, behavior: 'smooth' });
+      });
+    };
+    let ticking = false;
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          setActive();
+        });
+      },
+      { passive: true },
+    );
+    setActive();
+  }
+</script>

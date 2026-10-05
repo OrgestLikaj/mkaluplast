@@ -1,0 +1,179 @@
+---
+interface Props {
+  items: { q: string; a: string }[];
+  /** Emit FAQPage structured data (only on the page that owns the full list). */
+  schema?: boolean;
+}
+const { items, schema = false } = Astro.props;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: items.map((i) => ({
+    '@type': 'Question',
+    name: i.q,
+    acceptedAnswer: { '@type': 'Answer', text: i.a },
+  })),
+};
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<div class="faq">
+  {
+    items.map((item, i) => (
+      <details name="faq" open={i === 0}>
+        <summary>
+          <span class="num">{pad(i + 1)}</span>
+          <span class="q">{item.q}</span>
+          <span class="toggle" aria-hidden="true">
+            <span />
+          </span>
+        </summary>
+        <div class="answer">
+          <p>{item.a}</p>
+        </div>
+      </details>
+    ))
+  }
+</div>
+{schema && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+<style>
+  .faq {
+    display: grid;
+    gap: 0.75rem;
+  }
+  details {
+    interpolate-size: allow-keywords;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease),
+      background 0.4s var(--ease);
+  }
+  details:hover {
+    border-color: var(--stone-400);
+  }
+  details[open] {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -45px rgba(14, 19, 48, 0.35);
+  }
+
+  /* Smooth open/close where supported (falls back to instant toggle) */
+  details::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size 0.45s var(--ease),
+      content-visibility 0.45s allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+  @supports not (interpolate-size: allow-keywords) {
+    details::details-content {
+      block-size: auto;
+    }
+  }
+
+  summary {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.35rem 1.4rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: -2px;
+    border-radius: var(--radius-lg);
+  }
+  .num {
+    width: 1.5rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--stone-400);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+  details[open] .num,
+  summary:hover .num {
+    color: var(--navy);
+  }
+  .q {
+    font-family: var(--font-display);
+    font-size: clamp(0.96rem, 1.32vw, 1.11rem);
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+
+  /* Plus that turns into a minus inside a circle */
+  .toggle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    transition:
+      background 0.35s var(--ease),
+      border-color 0.35s var(--ease);
+  }
+  .toggle::before,
+  .toggle span {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: var(--ink);
+    transition:
+      transform 0.35s var(--ease),
+      background 0.35s var(--ease);
+  }
+  .toggle span {
+    transform: rotate(90deg);
+  }
+  details[open] .toggle {
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+  details[open] .toggle::before,
+  details[open] .toggle span {
+    background: #fff;
+  }
+  details[open] .toggle span {
+    transform: rotate(0deg);
+  }
+
+  .answer {
+    /* Align the answer with the question text */
+    padding: 0 1.4rem 1.5rem calc(1.4rem + 1.5rem + 1.25rem);
+  }
+  .answer p {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--text-muted);
+    white-space: pre-line;
+  }
+  @media (max-width: 560px) {
+    summary {
+      gap: 0.9rem;
+      padding: 1.15rem 1.1rem;
+    }
+    .answer {
+      padding: 0 1.1rem 1.3rem;
+    }
+  }
+</style>

@@ -1,0 +1,29 @@
+{
+  "heroTitle": "Finestre e porte, realizzate su misura.",
+  "heroSubtitle": "Finestre, porte, persiane e ringhiere in PVC e alluminio a taglio termico, progettate, prodotte e installate da MK AluPlast dal 1999.",
+  "heroImage": "/uploads/about-hero.webp",
+  "aboutImage": "/uploads/wall-partitions-office.webp",
+  "aboutImageSecondary": "/uploads/blog-reduce-outside-noise.webp",
+  "steps": [
+    {
+      "title": "Consulenza e rilievo misure",
+      "text": "Raccontaci il tuo progetto, il tipo di prodotto, le dimensioni approssimative e la località: organizzeremo il rilievo delle misure sul posto.",
+      "icon": "ruler"
+    },
+    {
+      "title": "Scelta di profili e vetri",
+      "text": "Ti aiutiamo a scegliere il sistema di profili, la vetratura e il tipo di apertura più adatti al tuo spazio, al comfort desiderato e al tuo budget.",
+      "icon": "layers"
+    },
+    {
+      "title": "Produzione",
+      "text": "Finestre e porte vengono realizzate sulle tue misure ed esigenze esatte, con materiali di qualità e una lavorazione accurata.",
+      "icon": "factory"
+    },
+    {
+      "title": "Installazione",
+      "text": "Il nostro team pianifica ed esegue un'installazione professionale e ben sigillata, per un risultato sicuro, efficiente e fatto per durare.",
+      "icon": "wrench"
+    }
+  ]
+}

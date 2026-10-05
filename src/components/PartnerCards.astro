@@ -1,0 +1,293 @@
+---
+import sharp from 'sharp';
+import Icon from './Icon.astro';
+import { getProducts, site, splitId } from '../lib/content';
+import { useTranslations, productUrl, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Each card links to the window page for the partner's material.
+const productFor = { pvc: 'pvc-windows', aluminium: 'thermal-aluminum-windows' } as const;
+const products = await getProducts(lang);
+const hrefFor = (material: keyof typeof productFor) => {
+  const p = products.find((x) => x.data.translationKey === productFor[material]);
+  return p ? productUrl(lang, splitId(p.id).slug) : undefined;
+};
+
+const regions = new Intl.DisplayNames([lang], { type: 'region' });
+const countryName = (code: string) => {
+  try {
+    return code ? regions.of(code.toUpperCase()) : '';
+  } catch {
+    return code;
+  }
+};
+
+// Optical sizing: give every logo roughly the same visual area, so a square
+// mark doesn't look tiny next to a long wordmark.
+const LOGO_AREA = 11000;
+async function logoSize(src: string) {
+  try {
+    const { width = 1, height = 1 } = await sharp(`public${src}`).metadata();
+    const ratio = width / height;
+    let w = Math.sqrt(LOGO_AREA * ratio);
+    let h = w / ratio;
+    if (w > 230) [w, h] = [230, 230 / ratio];
+    if (h > 96) [w, h] = [96 * ratio, 96];
+    return { w: Math.round(w), h: Math.round(h) };
+  } catch {
+    return { w: 200, h: 64 };
+  }
+}
+
+type Material = keyof typeof productFor;
+const partners = await Promise.all(
+  site.partners.map(async (p) => {
+    const material = (p.material in productFor ? p.material : 'pvc') as Material;
+    return {
+      ...p,
+      material,
+      country: countryName(p.country),
+      href: hrefFor(material),
+      size: await logoSize(p.logo),
+    };
+  }),
+);
+---
+
+<ul class="partners">
+  {
+    partners.map((p, i) => (
+      <li class="card" data-material={p.material} data-reveal style={`--delay:${i * 0.07}s`}>
+        <div class="stage">
+          <img
+            src={p.logo}
+            alt={p.name}
+            loading="lazy"
+            decoding="async"
+            width={p.size.w}
+            height={p.size.h}
+            style={`--w:${p.size.w}px`}
+          />
+        </div>
+        <div class="info">
+          <p class="meta">
+            <span class="chip">{t(`partners.${p.material}`)}</span>
+            {p.country && <span class="country">{p.country}</span>}
+          </p>
+          <h3>{p.name}</h3>
+          <p class="blurb">{t(`partners.blurb.${p.material}`)}</p>
+          {p.systems.length > 0 && (
+            <div class="systems">
+              <p class="label">{t('partners.systems')}</p>
+              <ul>
+                {p.systems.map((s) => (
+                  <li>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div class="links">
+            {p.href && (
+              <a class="link-arrow main" href={p.href}>
+                {t(`partners.see.${p.material}`)}
+                <Icon name="arrow" />
+              </a>
+            )}
+            {p.website && (
+              <a class="ext" href={p.website} target="_blank" rel="noopener" aria-label={`${t('partners.website')}: ${p.name}`}>
+                <Icon name="arrow-up-right" size={18} />
+              </a>
+            )}
+          </div>
+        </div>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .partners {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .partners {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1100px) {
+    .partners {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .card {
+    --accent: var(--navy);
+    --chip-bg: var(--steel-50);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease),
+      transform 0.4s var(--ease);
+  }
+  .card[data-material='aluminium'] {
+    --accent: #6b7280;
+    --chip-bg: var(--stone-100);
+  }
+  /* Thin material-coloured rule along the top edge, revealed on hover */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.5s var(--ease);
+    z-index: 1;
+  }
+  .card:hover {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -40px rgba(14, 19, 48, 0.35);
+    transform: translateY(-3px);
+  }
+  .card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .stage {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    padding: 2rem 2.5rem;
+    background:
+      radial-gradient(80% 90% at 50% 40%, #fff 0%, var(--stone-50) 100%);
+    border-bottom: 1px solid var(--line);
+  }
+  .stage img {
+    width: min(var(--w), 80%);
+    height: auto;
+    object-fit: contain;
+    transition: transform 0.6s var(--ease);
+  }
+  .card:hover .stage img {
+    transform: scale(1.05);
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 1.5rem 1.5rem 1.4rem;
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 0.9rem;
+    font-size: 0.8rem;
+  }
+  .chip {
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .card[data-material='pvc'] .chip {
+    color: var(--navy);
+  }
+  .country {
+    color: var(--text-muted);
+  }
+  h3 {
+    margin: 0 0 0.5rem;
+  }
+  .blurb {
+    color: var(--text-muted);
+    font-size: 0.93rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+  }
+
+  .systems {
+    margin-bottom: 1.25rem;
+  }
+  .label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 0.55rem;
+  }
+  .systems ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .systems li {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .links {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    min-height: 36px;
+    box-sizing: content-box;
+    margin-top: auto;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+  /* Whole card clicks through to the product page */
+  .main::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .ext {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    color: var(--text-muted);
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .ext:hover {
+    color: var(--navy);
+    border-color: var(--navy);
+  }
+</style>

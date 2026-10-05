@@ -1,0 +1,29 @@
+{
+  "heroTitle": "Dritare dhe dyer, sipas përmasave tuaja.",
+  "heroSubtitle": "Dritare dhe dyer PVC e alumini termik, grila dhe parmakë, të projektuara, prodhuara dhe montuara nga MK AluPlast që nga viti 1999.",
+  "heroImage": "/uploads/about-hero.webp",
+  "aboutImage": "/uploads/wall-partitions-office.webp",
+  "aboutImageSecondary": "/uploads/blog-reduce-outside-noise.webp",
+  "steps": [
+    {
+      "title": "Konsultim dhe matje",
+      "text": "Na tregoni për projektin tuaj, llojin e produktit, përmasat e përafërta dhe vendndodhjen, dhe ne organizojmë matjen në vend.",
+      "icon": "ruler"
+    },
+    {
+      "title": "Zgjedhja e profilit dhe xhamit",
+      "text": "Ju ndihmojmë të zgjidhni sistemin e duhur të profilit, xhamaturën dhe mënyrën e hapjes sipas ambientit, komoditetit që kërkoni dhe buxhetit tuaj.",
+      "icon": "layers"
+    },
+    {
+      "title": "Prodhimi",
+      "text": "Dritaret dhe dyert tuaja prodhohen sipas përmasave dhe kërkesave tuaja të sakta, me materiale cilësore dhe punë të kujdesshme.",
+      "icon": "factory"
+    },
+    {
+      "title": "Montimi",
+      "text": "Ekipi ynë planifikon dhe kryen një montim profesional e të hermetizuar me kujdes, për një rezultat të sigurt, me kursim energjie dhe që zgjat në kohë.",
+      "icon": "wrench"
+    }
+  ]
+}

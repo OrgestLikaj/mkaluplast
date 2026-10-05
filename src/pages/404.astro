@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { useTranslations, route, locales, defaultLang } from '../i18n/ui';
+
+const t = useTranslations(defaultLang);
+const others = locales.filter((l) => l !== defaultLang).map((l) => ({ lang: l, t: useTranslations(l) }));
+---
+
+<Base lang="en" title={t('notFound.title')} noindex>
+  <section class="page-hero nf">
+    <div class="container">
+      <p class="eyebrow">404</p>
+      <h1>{t('notFound.title')}</h1>
+      <p class="lead">{t('notFound.text')}</p>
+      {others.map((o) => <p class="lead other" lang={o.lang}>{o.t('notFound.text')}</p>)}
+      <div class="buttons">
+        <a class="btn" href={route('en', 'home')}>
+          <img class="flag" src="/flags/en.svg" alt="" width="20" height="20" />
+          {t('notFound.home')}
+        </a>
+        {
+          others.map((o) => (
+            <a class="btn btn--ghost" href={route(o.lang, 'home')} lang={o.lang}>
+              <img class="flag" src={`/flags/${o.lang}.svg`} alt="" width="20" height="20" />
+              {o.t('notFound.home')}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    min-height: 70vh;
+  }
+  .other {
+    margin-top: 0.75rem !important;
+    font-size: 1rem;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+  .flag {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+</style>

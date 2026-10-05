@@ -1,0 +1,244 @@
+---
+import Icon from './Icon.astro';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+// Image grid with a <dialog> lightbox (arrow keys, swipe, Esc).
+interface Props {
+  lang: Lang;
+  images: string[];
+  alt: string;
+}
+const { lang, images, alt } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<div class="gallery" data-gallery>
+  <ul class:list={['grid', `n${Math.min(images.length, 4)}`]}>
+    {
+      images.map((src, i) => (
+        <li>
+          <button type="button" data-open={i} aria-label={`${t('product.enlarge')} ${i + 1}`}>
+            <img src={src} alt={`${alt} ${i + 1}`} loading="lazy" decoding="async" width="900" height="675" />
+            <span class="zoom" aria-hidden="true">
+              <Icon name="plus" size={20} />
+            </span>
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+
+  <dialog class="lightbox" aria-label={alt} data-lightbox>
+    <img src="" alt="" data-full />
+    <p class="counter" data-counter></p>
+    <button type="button" class="lb-btn close" data-close aria-label={t('product.close')}>
+      <Icon name="close" />
+    </button>
+    {
+      images.length > 1 && (
+        <>
+          <button type="button" class="lb-btn prev" data-prev aria-label={t('product.prev')}>
+            <Icon name="arrow" class="flip" />
+          </button>
+          <button type="button" class="lb-btn next" data-next aria-label={t('product.next')}>
+            <Icon name="arrow" />
+          </button>
+        </>
+      )
+    }
+  </dialog>
+</div>
+
+<style>
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 900px) {
+    .grid.n3,
+    .grid.n4 {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+    /* First image is the large one in the bento */
+    .grid.n3 li:first-child,
+    .grid.n4 li:first-child {
+      grid-row: span 2;
+    }
+  }
+  .grid.n1 {
+    grid-template-columns: 1fr;
+  }
+  li {
+    min-height: 0;
+  }
+  button[data-open] {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #fff;
+    cursor: zoom-in;
+  }
+  button[data-open] img {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 4 / 3;
+    /* Product renders on white: show the whole item rather than cropping it */
+    object-fit: contain;
+    padding: 1rem;
+    transition: transform 1s var(--ease);
+  }
+  button[data-open]:hover img {
+    transform: scale(1.04);
+  }
+  .zoom {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.9rem;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--ink);
+    opacity: 0;
+    transform: scale(0.9);
+    transition:
+      opacity 0.3s,
+      transform 0.3s var(--ease);
+  }
+  button[data-open]:hover .zoom,
+  button[data-open]:focus-visible .zoom {
+    opacity: 1;
+    transform: none;
+  }
+
+  .lightbox {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: clamp(3.5rem, 6vw, 5rem) clamp(1rem, 6vw, 6rem);
+    border: 0;
+    background: rgba(10, 13, 34, 0.94);
+    color: #fff;
+  }
+  .lightbox[open] {
+    display: grid;
+    place-items: center;
+    animation: lb-in 0.3s var(--ease);
+  }
+  .lightbox::backdrop {
+    background: transparent;
+  }
+  @keyframes lb-in {
+    from {
+      opacity: 0;
+    }
+  }
+  [data-full] {
+    max-width: 100%;
+    /* Fit the viewport, leaving room for the counter and buttons */
+    max-height: calc(100dvh - 2 * clamp(3.5rem, 6vw, 5rem));
+    object-fit: contain;
+    border-radius: var(--radius);
+    background: #fff;
+  }
+  .counter {
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .lb-btn {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .lb-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .close {
+    top: 1rem;
+    right: 1rem;
+  }
+  .prev,
+  .next {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .prev {
+    left: 1rem;
+  }
+  .next {
+    right: 1rem;
+  }
+  .lightbox :global(.flip) {
+    transform: rotate(180deg);
+  }
+</style>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-gallery]')) {
+    const dialog = root.querySelector<HTMLDialogElement>('[data-lightbox]')!;
+    const full = dialog.querySelector<HTMLImageElement>('[data-full]')!;
+    const counter = dialog.querySelector<HTMLElement>('[data-counter]')!;
+    const thumbs = [...root.querySelectorAll<HTMLImageElement>('[data-open] img')];
+    let index = 0;
+
+    const show = (i: number) => {
+      index = (i + thumbs.length) % thumbs.length;
+      full.src = thumbs[index].currentSrc || thumbs[index].src;
+      full.alt = thumbs[index].alt;
+      counter.textContent = `${index + 1} / ${thumbs.length}`;
+    };
+
+    root.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        show(Number(btn.dataset.open));
+        dialog.showModal();
+      }),
+    );
+    dialog.querySelector('[data-close]')!.addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-prev]')?.addEventListener('click', () => show(index - 1));
+    dialog.querySelector('[data-next]')?.addEventListener('click', () => show(index + 1));
+    // Click on the dark backdrop (not the image or buttons) closes
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') show(index + 1);
+      if (e.key === 'ArrowLeft') show(index - 1);
+    });
+    // Swipe on touch screens
+    let startX = 0;
+    dialog.addEventListener('touchstart', (e) => (startX = e.touches[0].clientX), { passive: true });
+    dialog.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+    });
+  }
+</script>

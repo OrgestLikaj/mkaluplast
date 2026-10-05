@@ -1,0 +1,38 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import FaqList from '../components/FaqList.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const items = (await getEntry('faq', lang))?.data.items ?? [];
+---
+
+<Base lang={lang} title={t('home.faqTitle')} description={items[0]?.a} alternates={routes.faq}>
+  <section class="page-hero">
+    <div class="container">
+      <ol class="breadcrumbs">
+        <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+        <li aria-current="page">{t('nav.faq')}</li>
+      </ol>
+      <h1>{t('home.faqTitle')}</h1>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container narrow">
+      <FaqList items={items} schema />
+    </div>
+  </section>
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  .narrow {
+    max-width: 980px;
+  }
+</style>

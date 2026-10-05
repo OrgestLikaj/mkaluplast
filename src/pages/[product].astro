@@ -1,0 +1,13 @@
+---
+import ProductView from '../views/ProductView.astro';
+import { getProducts, splitId } from '../lib/content';
+
+export async function getStaticPaths() {
+  const products = await getProducts('en');
+  return products.map((product) => ({ params: { product: splitId(product.id).slug }, props: { product } }));
+}
+
+const { product } = Astro.props;
+---
+
+<ProductView lang="en" product={product} />

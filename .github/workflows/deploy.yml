@@ -1,0 +1,43 @@
+name: Build & deploy to Namecheap
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+        env:
+          # Set the repo variable NOINDEX=true while the site runs on a staging subdomain.
+          PUBLIC_NOINDEX: ${{ vars.NOINDEX }}
+
+      # Uploads only changed files (tracks state in .ftp-deploy-sync-state.json on the server).
+      # Required repo secrets: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_SERVER_DIR
+      #   FTP_SERVER_DIR examples: "public_html/" (live) or "new.mkaluplast.com/" (staging subdomain)
+      - name: Upload via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**

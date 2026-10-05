@@ -1,0 +1,696 @@
+---
+import Icon from './Icon.astro';
+import { site, slugify } from '../lib/content';
+import { parseSpecs } from '../lib/specs';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+// Tabbed explorer for a product's systems / variants. Each type gets headline
+// figures, a spec table and feature chips parsed from its `specs` lines.
+// Without JS every panel is shown stacked; with JS it becomes accessible tabs.
+interface Props {
+  lang: Lang;
+  types: { name: string; text: string; image?: string; specs?: string[] }[];
+  fallbackImage: string;
+  /** Contact link for the product, e.g. /contact/?product=pvc-windows#quote */
+  quoteHref: string;
+}
+const { lang, types, fallbackImage, quoteHref } = Astro.props;
+const t = useTranslations(lang);
+const pad = (n: number) => String(n).padStart(2, '0');
+const single = types.length === 1;
+
+// Stable, shareable panel ids: /pvc-windows/#type-greenevolution-free opens that tab.
+const panelId = (name: string) => `type-${slugify(name)}`;
+const tabId = (name: string) => `tab-${slugify(name)}`;
+// Carries the chosen system into the quote form (?variant=…).
+const quoteFor = (name: string) =>
+  quoteHref.replace('#quote', `&variant=${encodeURIComponent(name)}#quote`);
+
+const items = types.map((ty) => ({ ...ty, parsed: parseSpecs(ty.specs) }));
+
+// "Uw" alone is jargon for most homeowners — spell it out on the figure tiles.
+const figureLabel = (label: string) => (/^U[wdf]$/i.test(label) ? `${t('product.thermal')} (${label})` : label);
+// "0.74 W/(m²K)" → big "0.74" + small unit; non-numeric values (e.g. "RC 3") stay whole.
+const splitValue = (value: string) => {
+  const m = value.match(/^([\d.,]+(?:\s*(?:o|or|–|-)\s*[\d.,]+)?)\s*(.*)$/);
+  return m ? { num: m[1], unit: m[2] } : { num: value, unit: '' };
+};
+---
+
+<div class:list={['explorer', { single }]} data-explorer>
+  {
+    !single && (
+      <div class="tabs" role="tablist" aria-orientation="vertical" data-tablist hidden>
+        {items.map((ty, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={tabId(ty.name)}
+            aria-controls={panelId(ty.name)}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            tabindex={i === 0 ? 0 : -1}
+            data-tab
+          >
+            <span class="tab-thumb" aria-hidden="true">
+              <img src={ty.image || fallbackImage} alt="" loading="lazy" decoding="async" width="96" height="72" />
+            </span>
+            <span class="tab-text">
+              <span class="tab-name">{ty.name}</span>
+              {ty.parsed.highlights[0] && (
+                <span class="tab-meta">
+                  {ty.parsed.highlights[0].value} · {ty.parsed.highlights[0].label.replace(/\s*\(.*?\)/g, '')}
+                </span>
+              )}
+            </span>
+            <Icon name="arrow" size={18} class="tab-arrow" />
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  <div class="panels">
+    {
+      items.map((ty, i) => {
+        const { highlights, rows, features } = ty.parsed;
+        const prev = items[(i - 1 + items.length) % items.length];
+        const next = items[(i + 1) % items.length];
+        return (
+          <section
+            class="panel"
+            role={single ? undefined : 'tabpanel'}
+            id={panelId(ty.name)}
+            aria-labelledby={single ? undefined : tabId(ty.name)}
+            data-panel
+          >
+            <div class="p-top">
+              <div class:list={['p-media', { photo: !ty.image }]}>
+                <img src={ty.image || fallbackImage} alt={ty.name} loading="lazy" decoding="async" width="900" height="675" />
+                {!single && (
+                  <span class="p-count">
+                    {pad(i + 1)} <span>/ {pad(items.length)}</span>
+                  </span>
+                )}
+              </div>
+
+              <div class="p-body">
+                <h3>{ty.name}</h3>
+                {ty.text && <p class="p-text">{ty.text}</p>}
+                {highlights.length > 0 && (
+                  <dl class="figures">
+                    {highlights.map((h) => {
+                      const { num, unit } = splitValue(h.value);
+                      return (
+                        <div>
+                          <dt>{figureLabel(h.label)}</dt>
+                          <dd>
+                            {h.prefix && <small>{h.prefix}</small>}
+                            <span class="num">{num}</span>
+                            {unit && <span class="unit">{unit}</span>}
+                          </dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                )}
+              </div>
+            </div>
+
+            {(rows.length > 0 || features.length > 0) && (
+              <div class="p-details">
+                {rows.length > 0 && (
+                  <div>
+                    <p class="p-label">{t('product.techData')}</p>
+                    <dl class="table">
+                      {rows.map((r) => (
+                        <div>
+                          <dt>{r.label}</dt>
+                          <dd>
+                            {r.prefix && <small>{r.prefix} </small>}
+                            {r.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+                {features.length > 0 && (
+                  <div>
+                    <p class="p-label">{t('product.featuresLabel')}</p>
+                    <ul class="chips">
+                      {features.map((f) => (
+                        <li>
+                          <Icon name="check" size={15} />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div class="p-foot">
+              <div class="p-actions">
+                <a class="btn" href={quoteFor(ty.name)}>
+                  {t('product.quoteThis')}
+                  <Icon name="arrow" />
+                </a>
+                {site.phone && (
+                  <a class="p-phone" href={`tel:${site.phone}`}>
+                    <Icon name="phone" size={18} />
+                    {site.phoneDisplay || site.phone}
+                  </a>
+                )}
+              </div>
+              {!single && (
+                <div class="p-nav">
+                  <a href={`#${panelId(prev.name)}`} class="p-step" aria-label={`${t('product.prevType')}: ${prev.name}`}>
+                    <Icon name="arrow" size={18} class="flip" />
+                  </a>
+                  <a href={`#${panelId(next.name)}`} class="p-step p-next">
+                    <span>
+                      <small>{t('product.nextType')}</small>
+                      {next.name}
+                    </span>
+                    <Icon name="arrow" size={18} />
+                  </a>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })
+    }
+  </div>
+</div>
+
+<style>
+  .explorer {
+    display: grid;
+    gap: 2rem;
+    /* html already pads for the fixed header; this clears the product section bar */
+    scroll-margin-top: 64px;
+  }
+  @media (min-width: 1100px) {
+    .explorer:not(.single) {
+      grid-template-columns: 330px 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+    .tabs {
+      position: sticky;
+      top: calc(var(--header-h) + 80px);
+    }
+  }
+
+  /* ---------- Tabs ---------- */
+  .tabs {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: calc(var(--gutter) * -1);
+    padding: 0.25rem var(--gutter);
+    scroll-snap-type: x proximity;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  [role='tab'] {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem 0.5rem 0.5rem;
+    border: 1px solid var(--stone-200);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition:
+      border-color 0.25s,
+      box-shadow 0.25s,
+      background 0.25s;
+  }
+  .tab-thumb {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 44px;
+    border-radius: 6px;
+    background: var(--stone-50);
+    overflow: hidden;
+  }
+  .tab-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
+    mix-blend-mode: multiply;
+  }
+  .tab-text {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+  .tab-name {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tab-meta {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  @media (min-width: 1100px) {
+    .tab-meta {
+      max-width: none;
+    }
+  }
+  .tabs :global(.tab-arrow) {
+    display: none;
+  }
+  [role='tab']:hover {
+    border-color: var(--stone-400);
+  }
+  [role='tab'][aria-selected='true'] {
+    border-color: var(--navy);
+    box-shadow: inset 0 0 0 1px var(--navy);
+  }
+  [role='tab'][aria-selected='true'] .tab-name {
+    color: var(--navy);
+  }
+  @media (min-width: 1100px) {
+    .tabs {
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      overflow: visible;
+    }
+    [role='tab'] {
+      width: 100%;
+      padding: 0.65rem 1rem 0.65rem 0.65rem;
+    }
+    .tab-thumb {
+      width: 64px;
+      height: 52px;
+    }
+    .tab-text {
+      flex: 1;
+    }
+    .tabs :global(.tab-arrow) {
+      display: block;
+      color: var(--navy);
+      opacity: 0;
+      transform: translateX(-6px);
+      transition:
+        opacity 0.25s,
+        transform 0.3s var(--ease);
+    }
+    [role='tab'][aria-selected='true'] :global(.tab-arrow) {
+      opacity: 1;
+      transform: none;
+    }
+    [role='tab'][aria-selected='true'] {
+      background: var(--steel-50);
+    }
+  }
+
+  /* ---------- Panel ---------- */
+  .panels {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .panel.is-entering .p-top,
+  .panel.is-entering .p-details {
+    animation: panel-in 0.5s var(--ease);
+  }
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  .p-top {
+    display: grid;
+  }
+  @media (min-width: 760px) {
+    .p-top {
+      grid-template-columns: 1fr 1.1fr;
+    }
+  }
+  .p-media {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 280px;
+    padding: 2.5rem 2rem;
+    background: radial-gradient(70% 70% at 50% 45%, #fff 0%, var(--stone-50) 100%);
+    border-bottom: 1px solid var(--line);
+  }
+  @media (min-width: 760px) {
+    .p-media {
+      border-bottom: 0;
+      border-right: 1px solid var(--line);
+    }
+  }
+  .p-media img {
+    width: 100%;
+    max-height: 340px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+  @media (max-width: 759px) {
+    .p-media {
+      min-height: 0;
+      padding: 2.5rem 1.5rem 1.5rem;
+    }
+    .p-media img {
+      max-height: 200px;
+    }
+  }
+  .p-media.photo {
+    padding: 0;
+  }
+  .p-media.photo img {
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+    mix-blend-mode: normal;
+  }
+  .p-count {
+    position: absolute;
+    top: 1rem;
+    left: 1.1rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--navy);
+  }
+  .p-count span {
+    color: var(--stone-400);
+  }
+  .p-body {
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .p-body h3 {
+    font-size: clamp(1.41rem, 2.29vw, 1.94rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.75rem;
+  }
+  .p-text {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  /* Headline figures */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.6rem;
+    margin: 0;
+  }
+  .figures div {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius);
+    background: var(--steel-50);
+  }
+  .figures dt {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
+  .figures dd {
+    margin: 0;
+    font-family: var(--font-display);
+    line-height: 1.1;
+    color: var(--navy);
+  }
+  .figures .num {
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .figures .unit {
+    margin-left: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .figures small {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+  }
+
+  /* Spec table + feature chips */
+  .p-details {
+    display: grid;
+    gap: 1.75rem;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    border-top: 1px solid var(--line);
+  }
+  @media (min-width: 900px) {
+    .p-details:has(> div + div) {
+      grid-template-columns: 1.3fr 1fr;
+      gap: 3rem;
+    }
+  }
+  .p-label {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .table {
+    margin: 0;
+    border-top: 1px solid var(--line);
+  }
+  .table div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.93rem;
+  }
+  .table dt {
+    color: var(--text-muted);
+  }
+  .table dd {
+    margin: 0;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .table small {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+  .chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .chips li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 0.88rem;
+    color: var(--ink);
+  }
+  .chips :global(svg) {
+    color: var(--navy);
+    flex: none;
+  }
+
+  /* Footer: quote + prev/next */
+  .p-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.25rem clamp(1.5rem, 3vw, 2.25rem);
+    border-top: 1px solid var(--line);
+    background: var(--stone-50);
+  }
+  .p-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+  }
+  .p-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .p-phone:hover {
+    color: var(--navy);
+  }
+  .p-nav {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .p-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0 0.9rem;
+    border: 1px solid var(--stone-200);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      border-color 0.2s,
+      color 0.2s;
+  }
+  .p-step:hover {
+    border-color: var(--navy);
+    color: var(--navy);
+  }
+  .p-next span {
+    display: grid;
+    text-align: right;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .p-next small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .explorer :global(.flip) {
+    transform: rotate(180deg);
+  }
+</style>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>('[data-explorer]')) {
+    const tablist = root.querySelector<HTMLElement>('[data-tablist]');
+    if (!tablist) continue;
+    const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-panel]')];
+    tablist.hidden = false;
+
+    const select = (index: number, focus = false) => {
+      tabs.forEach((tab, i) => {
+        const on = i === index;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        panels[i].hidden = !on;
+        if (on) {
+          panels[i].classList.remove('is-entering');
+          void panels[i].offsetWidth; // restart the entrance animation
+          panels[i].classList.add('is-entering');
+          if (focus) tab.focus();
+          // Keep the active chip visible in the horizontal (mobile) strip without moving the page
+          if (tablist.scrollWidth > tablist.clientWidth) {
+            tablist.scrollTo({ left: tab.offsetLeft - 16, behavior: 'smooth' });
+          }
+        }
+      });
+    };
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(i));
+      tab.addEventListener('keydown', (e) => {
+        const keys: Record<string, number> = {
+          ArrowDown: i + 1,
+          ArrowRight: i + 1,
+          ArrowUp: i - 1,
+          ArrowLeft: i - 1,
+          Home: 0,
+          End: tabs.length - 1,
+        };
+        if (e.key in keys) {
+          e.preventDefault();
+          select((keys[e.key] + tabs.length) % tabs.length, true);
+        }
+      });
+    });
+    panels.forEach((p, i) => (p.hidden = i !== 0));
+
+    const indexOf = (id: string) => panels.findIndex((p) => p.id === id);
+
+    // Prev/next buttons inside panels (and any other #type- link within the explorer)
+    root.addEventListener('click', (e) => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#type-"]');
+      if (!link) return;
+      const index = indexOf(link.getAttribute('href')!.slice(1));
+      if (index < 0) return;
+      e.preventDefault();
+      history.replaceState(null, '', link.getAttribute('href'));
+      select(index);
+      // Bring the panel top back into view if the user was far down a long spec list
+      if (root.getBoundingClientRect().top < 0) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Deep links: #type-<slug> selects that tab and brings the explorer into view.
+    const openFromHash = (scroll: boolean) => {
+      const index = indexOf(decodeURIComponent(location.hash.slice(1)));
+      if (index < 0) return;
+      select(index);
+      if (scroll) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    // On first load, select immediately but scroll only once layout has settled.
+    openFromHash(false);
+    if (location.hash.startsWith('#type-')) {
+      const settle = () => requestAnimationFrame(() => openFromHash(true));
+      if (document.readyState === 'complete') settle();
+      else window.addEventListener('load', settle, { once: true });
+    }
+    window.addEventListener('hashchange', () => openFromHash(true));
+  }
+</script>

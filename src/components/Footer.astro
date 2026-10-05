@@ -1,0 +1,206 @@
+---
+import Icon from './Icon.astro';
+import { getProducts, site, splitId, hoursFor } from '../lib/content';
+import { useTranslations, route, productUrl, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const products = await getProducts(lang);
+const year = new Date().getFullYear();
+
+const socials = (Object.entries(site.social) as [keyof typeof site.social, string][]).filter(
+  ([, url]) => url,
+);
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="top">
+      <div class="brand">
+        <img src="/uploads/logo-mk-aluplast.webp" alt={site.name} width="170" height="48" loading="lazy" />
+        <p>{site.tagline}</p>
+        {
+          socials.length > 0 && (
+            <ul class="socials">
+              {socials.map(([name, url]) => (
+                <li>
+                  <a href={url} target="_blank" rel="noopener" aria-label={name}>
+                    <Icon name={name} size={20} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+
+      <nav aria-label={t('footer.products')}>
+        <p class="title">{t('footer.products')}</p>
+        <ul>
+          {
+            products.map((p) => (
+              <li>
+                <a href={productUrl(lang, splitId(p.id).slug)}>{p.data.title}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav aria-label={t('footer.company')}>
+        <p class="title">{t('footer.company')}</p>
+        <ul>
+          <li><a href={route(lang, 'about')}>{t('nav.about')}</a></li>
+          <li><a href={route(lang, 'products')}>{t('nav.products')}</a></li>
+          <li><a href={route(lang, 'blog')}>{t('nav.blog')}</a></li>
+          <li><a href={route(lang, 'faq')}>{t('nav.faq')}</a></li>
+          <li><a href={route(lang, 'contact')}>{t('nav.contact')}</a></li>
+        </ul>
+      </nav>
+
+      <div>
+        <p class="title">{t('footer.contact')}</p>
+        <ul class="contact">
+          {
+            site.phone && (
+              <li>
+                <Icon name="phone" size={18} />
+                <a href={`tel:${site.phone}`}>{site.phoneDisplay || site.phone}</a>
+              </li>
+            )
+          }
+          {
+            site.email && (
+              <li>
+                <Icon name="mail" size={18} />
+                <a href={`mailto:${site.email}`}>{site.email}</a>
+              </li>
+            )
+          }
+          {
+            site.address && (
+              <li>
+                <Icon name="pin" size={18} />
+                <span>
+                  {site.address}
+                  {site.city && <>, {site.city}</>}
+                </span>
+              </li>
+            )
+          }
+          {
+            site.hours && (
+              <li>
+                <Icon name="clock" size={18} />
+                <span>{hoursFor(lang)}</span>
+              </li>
+            )
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <p>© {year} {site.name}. {t('footer.rights')}</p>
+      <a href="#main" class="to-top">↑ Top</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--ink);
+    color: #a8adc4;
+    font-size: 0.95rem;
+    padding-top: clamp(4rem, 8vw, 6rem);
+  }
+  .top {
+    display: grid;
+    gap: 3rem;
+    padding-bottom: 4rem;
+  }
+  @media (min-width: 760px) {
+    .top {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1100px) {
+    .top {
+      grid-template-columns: 1.4fr 1fr 0.8fr 1.1fr;
+    }
+  }
+  .brand img {
+    height: 44px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    margin-bottom: 1.5rem;
+  }
+  .brand p {
+    max-width: 34ch;
+  }
+  .title {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 1.25rem;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+  a {
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  a:hover {
+    color: #fff;
+  }
+  .contact li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .contact :global(svg) {
+    flex: none;
+    margin-top: 0.2rem;
+    color: var(--steel);
+  }
+  .socials {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  .socials a {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+  }
+  .socials a:hover {
+    border-color: #fff;
+  }
+  .bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-block: 1.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85rem;
+  }
+  .bottom p {
+    margin: 0;
+  }
+</style>

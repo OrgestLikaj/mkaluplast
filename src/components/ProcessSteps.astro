@@ -1,0 +1,309 @@
+---
+import Icon from './Icon.astro';
+import { site } from '../lib/content';
+import { useTranslations, route, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  steps: { title: string; text: string; icon?: string }[];
+}
+const { lang, steps } = Astro.props;
+const t = useTranslations(lang);
+
+const icons = ['ruler', 'layers', 'factory', 'wrench', 'shield', 'check', 'award', 'building'] as const;
+type IconName = (typeof icons)[number];
+const iconFor = (name: string | undefined, i: number): IconName =>
+  (icons as readonly string[]).includes(name ?? '') ? (name as IconName) : icons[i % 4];
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<section class="section process" data-process>
+  <div class="container grid">
+    <div class="intro">
+      <div class="sticky" data-reveal>
+        <p class="eyebrow">{t('home.processEyebrow')}</p>
+        <h2>{t('home.processTitle')}</h2>
+        <p class="text">{t('home.processText')}</p>
+        <div class="cta">
+          <a class="btn" href={route(lang, 'contact')}>
+            {t('nav.quote')}
+            <Icon name="arrow" />
+          </a>
+          {
+            site.phone && (
+              <a class="phone" href={`tel:${site.phone}`}>
+                <Icon name="phone" size={18} />
+                {site.phoneDisplay || site.phone}
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <span class="rail" aria-hidden="true"><span class="fill" data-fill></span></span>
+      <ol class="list">
+      {
+        steps.map((s, i) => (
+          <li class="step" data-step>
+            <span class="marker" aria-hidden="true">
+              <Icon name={iconFor(s.icon, i)} size={22} />
+            </span>
+            <div class="card">
+              <p class="label">
+                {t('home.step')} {pad(i + 1)}
+                <span>&nbsp;/ {pad(steps.length)}</span>
+              </p>
+              <h3>{s.title}</h3>
+              <p class="desc">{s.text}</p>
+              <span class="big" aria-hidden="true">{pad(i + 1)}</span>
+            </div>
+          </li>
+        ))
+      }
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    gap: 3rem;
+  }
+  @media (min-width: 1000px) {
+    .grid {
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 6rem;
+      align-items: start;
+    }
+    .sticky {
+      position: sticky;
+      top: calc(var(--header-h) + 3rem);
+    }
+  }
+  .intro h2 {
+    max-width: 12ch;
+  }
+  .text {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 40ch;
+    margin-bottom: 2rem;
+  }
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+  }
+  .phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .phone:hover {
+    color: var(--navy);
+  }
+
+  /* ---------- Steps ---------- */
+  .steps {
+    --marker: 44px;
+    --gap: 1.25rem;
+    position: relative;
+  }
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--gap);
+  }
+  .rail {
+    position: absolute;
+    left: calc(var(--marker) / 2 - 1px);
+    top: calc(var(--marker) / 2);
+    bottom: calc(var(--marker) / 2);
+    width: 2px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+    background: var(--navy);
+    transform-origin: top;
+    transform: scaleY(var(--progress, 1));
+  }
+  :global(.js) .fill {
+    --progress: 0;
+  }
+
+  .step {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--marker) 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  .marker {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--marker);
+    height: var(--marker);
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    border: 2px solid var(--navy);
+    box-shadow: 0 0 0 6px #fff;
+    transition:
+      background 0.5s var(--ease),
+      color 0.5s var(--ease),
+      border-color 0.5s var(--ease);
+  }
+  .card {
+    position: relative;
+    overflow: hidden;
+    padding: 1.5rem 1.4rem 1.6rem;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    transition:
+      border-color 0.5s var(--ease),
+      box-shadow 0.5s var(--ease),
+      transform 0.5s var(--ease),
+      opacity 0.5s var(--ease);
+  }
+  .label {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .label span {
+    color: var(--stone-400);
+  }
+  .card h3 {
+    margin: 0 0 0.5rem;
+    max-width: 22ch;
+  }
+  .desc {
+    margin: 0;
+    max-width: 48ch;
+    color: var(--text-muted);
+    font-size: 0.98rem;
+  }
+  /* Oversized outline numeral in the corner */
+  .big {
+    position: absolute;
+    right: 1.25rem;
+    bottom: -1.2rem;
+    font-family: var(--font-display);
+    font-size: 5.5rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--stone-200);
+    pointer-events: none;
+    user-select: none;
+    display: none;
+    transition: -webkit-text-stroke-color 0.5s var(--ease);
+  }
+
+  /* Inactive state (before the step scrolls into focus) — JS only */
+  :global(.js) .step:not(.is-active) .marker {
+    background: #fff;
+    color: var(--stone-400);
+    border-color: var(--line);
+  }
+  :global(.js) .step:not(.is-active) .card {
+    opacity: 0.55;
+  }
+  .step.is-active .card {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -45px rgba(14, 19, 48, 0.35);
+  }
+  .step.is-current .big {
+    -webkit-text-stroke-color: var(--steel);
+  }
+
+  @media (min-width: 640px) {
+    .big {
+      display: block;
+    }
+    .steps {
+      --marker: 60px;
+      --gap: 1.5rem;
+    }
+    .step {
+      gap: 2rem;
+    }
+    .card {
+      /* Leave room on the right for the outline numeral */
+      padding: 2rem 7.5rem 2.1rem 2.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.js) .fill {
+      --progress: 1;
+    }
+    :global(.js) .step:not(.is-active) .marker {
+      background: var(--navy);
+      color: #fff;
+      border-color: var(--navy);
+    }
+    :global(.js) .step:not(.is-active) .card {
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  // Fill the rail and light up steps as they pass the middle of the viewport.
+  for (const section of document.querySelectorAll<HTMLElement>('[data-process]')) {
+    const list = section.querySelector<HTMLElement>('.steps')!;
+    const fill = section.querySelector<HTMLElement>('[data-fill]')!;
+    const steps = [...section.querySelectorAll<HTMLElement>('[data-step]')];
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const focus = window.innerHeight * 0.6;
+      const rect = list.getBoundingClientRect();
+      const progress = Math.min(1, Math.max(0, (focus - rect.top) / rect.height));
+      fill.style.setProperty('--progress', progress.toFixed(3));
+
+      let current = -1;
+      steps.forEach((step, i) => {
+        const marker = step.querySelector<HTMLElement>('.marker')!.getBoundingClientRect();
+        const active = marker.top + marker.height / 2 <= focus;
+        step.classList.toggle('is-active', active);
+        if (active) current = i;
+      });
+      steps.forEach((step, i) => step.classList.toggle('is-current', i === current));
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+  }
+</script>

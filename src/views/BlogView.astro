@@ -1,0 +1,203 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { getPosts, categories } from '../lib/content';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const own = await getPosts(lang);
+// Until translated articles exist, show the English ones rather than an empty page.
+const fallback = own.length === 0 && lang !== 'en';
+const posts = fallback ? await getPosts('en') : own;
+const postLang = fallback ? 'en' : lang;
+
+const [featured] = posts;
+// Topic filters: only categories that actually have articles, in catalogue order.
+const topics = categories
+  .map((cat) => ({ cat, count: posts.filter((p) => p.data.topic === cat).length }))
+  .filter((x) => x.count > 0);
+---
+
+<Base lang={lang} title={t('home.journalTitle')} description={t('blog.lead')} alternates={routes.blog}>
+  <section class="page-hero b-hero">
+    <div class="container">
+      <ol class="breadcrumbs">
+        <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+        <li aria-current="page">{t('nav.blog')}</li>
+      </ol>
+      <p class="eyebrow">{t('home.journalEyebrow')}</p>
+      <h1>{t('home.journalTitle')}</h1>
+      <p class="lead">{t('blog.lead')}</p>
+      {fallback && <p class="note">Gli articoli sono attualmente disponibili in inglese.</p>}
+    </div>
+  </section>
+
+  {
+    featured && (
+      <section class="featured-wrap" data-featured-block>
+        <div class="container" data-reveal>
+          <PostCard post={featured} lang={lang} linkLang={postLang} featured />
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section list-section">
+    <div class="container">
+      {
+        topics.length > 1 && (
+          <div class="filters" role="group" aria-label={t('blog.filter')} data-filters hidden>
+            <button type="button" aria-pressed="true" data-topic="all">
+              {t('blog.all')} <span>{posts.length}</span>
+            </button>
+            {topics.map(({ cat, count }) => (
+              <button type="button" aria-pressed="false" data-topic={cat}>
+                {t(`cat.${cat}`)} <span>{count}</span>
+              </button>
+            ))}
+          </div>
+        )
+      }
+
+      <div class="posts" data-posts>
+        {
+          posts.map((p, i) => (
+            <div
+              class="item"
+              data-topic={p.data.topic ?? ''}
+              data-featured={i === 0 ? '' : undefined}
+              hidden={i === 0}
+              data-reveal
+              style={`--delay:${(i % 3) * 0.08}s`}
+            >
+              <PostCard post={p} lang={lang} linkLang={postLang} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  .b-hero {
+    border-bottom: 0;
+  }
+  .b-hero .lead {
+    max-width: 52ch;
+  }
+  .note {
+    margin: 1rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+  .featured-wrap {
+    background: var(--stone-50);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: clamp(3rem, 6vw, 5rem);
+  }
+  .list-section {
+    padding-top: clamp(3rem, 6vw, 5rem);
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .filters button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 42px;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--stone-200);
+    border-radius: 999px;
+    background: #fff;
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      border-color 0.2s,
+      color 0.2s;
+  }
+  .filters button span {
+    min-width: 1.5em;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: var(--stone-100);
+    font-size: 0.78rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .filters button:hover {
+    border-color: var(--navy);
+  }
+  .filters button[aria-pressed='true'] {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+  .filters button[aria-pressed='true'] span {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  .posts {
+    display: grid;
+    gap: 3.5rem 1.75rem;
+  }
+  .item {
+    display: flex;
+  }
+  .item > :global(*) {
+    flex: 1;
+  }
+  @media (min-width: 700px) {
+    .posts {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1100px) {
+    .posts {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>
+
+<script>
+  // Client-side topic filter. "All" shows the featured article on top and the
+  // rest in the grid; a topic hides the featured block and filters the grid.
+  const filters = document.querySelector<HTMLElement>('[data-filters]');
+  if (filters) {
+    filters.hidden = false;
+    const featuredBlock = document.querySelector<HTMLElement>('[data-featured-block]');
+    const items = [...document.querySelectorAll<HTMLElement>('[data-posts] .item')];
+    const buttons = [...filters.querySelectorAll<HTMLButtonElement>('button')];
+
+    const apply = (topic: string) => {
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.topic === topic)));
+      const all = topic === 'all';
+      if (featuredBlock) featuredBlock.hidden = !all;
+      for (const item of items) {
+        const match = all ? !item.hasAttribute('data-featured') : item.dataset.topic === topic;
+        item.hidden = !match;
+        if (match) item.classList.add('is-visible');
+      }
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => apply(b.dataset.topic!)));
+  }
+</script>

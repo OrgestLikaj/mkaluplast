@@ -1,0 +1,409 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import QuoteForm from '../components/QuoteForm.astro';
+import OpenStatus from '../components/OpenStatus.astro';
+import FaqList from '../components/FaqList.astro';
+import { site, hoursFor } from '../lib/content';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Questions most useful right before getting in touch: quote, custom sizes, materials.
+const faqItems = (await getEntry('faq', lang))?.data.items ?? [];
+const faq = [5, 2, 1].map((i) => faqItems[i]).filter(Boolean);
+
+const next = [
+  { title: t('contact.next1Title'), text: t('contact.next1Text') },
+  { title: t('contact.next2Title'), text: t('contact.next2Text') },
+  { title: t('contact.next3Title'), text: t('contact.next3Text') },
+];
+const instagram = site.social.instagram;
+const igHandle = instagram ? '@' + instagram.replace(/\/+$/, '').split('/').pop() : '';
+const localBusinessLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HomeAndConstructionBusiness',
+  name: site.name,
+  url: Astro.site?.href,
+  telephone: site.phone || undefined,
+  email: site.email || undefined,
+  address: site.address
+    ? { '@type': 'PostalAddress', streetAddress: site.address, addressLocality: site.city, addressCountry: site.country }
+    : undefined,
+  openingHoursSpecification: site.schedule
+    ? {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: site.schedule.days.map(
+          (d) => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d],
+        ),
+        opens: site.schedule.open,
+        closes: site.schedule.close,
+      }
+    : undefined,
+};
+---
+
+<Base lang={lang} title={t('contact.title')} description={t('contact.lead')} alternates={routes.contact}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(localBusinessLd)} />
+
+  <!-- Hero -->
+  <section class="c-hero">
+    <div class="container c-hero-inner">
+      <div>
+        <ol class="breadcrumbs">
+          <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+          <li aria-current="page">{t('nav.contact')}</li>
+        </ol>
+        <p class="eyebrow">{t('contact.eyebrow')}</p>
+        <h1>{t('contact.heroTitle')}</h1>
+        <p class="lead">{t('contact.lead')}</p>
+        <a class="link-arrow jump" href="#quote">
+          {t('contact.formTitle')}
+          <Icon name="arrow" class="down" />
+        </a>
+      </div>
+
+      <aside class="panel" aria-label={t('contact.details')}>
+        {
+          site.phone && (
+            <a class="panel-call" href={`tel:${site.phone}`}>
+              <span class="panel-label">{t('contact.callUs')}</span>
+              <span class="panel-phone">{site.phoneDisplay || site.phone}</span>
+            </a>
+          )
+        }
+        <OpenStatus lang={lang} />
+        {hoursFor(lang) && <p class="panel-hours">{hoursFor(lang)}</p>}
+
+        <ul class="panel-list">
+          {
+            site.email && (
+              <li>
+                <a href={`mailto:${site.email}`}>
+                  <span class="pi"><Icon name="mail" size={18} /></span>
+                  <span>
+                    <small>{t('contact.writeUs')}</small>
+                    {site.email}
+                  </span>
+                  <Icon name="arrow-up-right" size={18} class="pa" />
+                </a>
+              </li>
+            )
+          }
+          {
+            site.whatsapp && (
+              <li>
+                <a href={`https://wa.me/${site.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener">
+                  <span class="pi"><Icon name="whatsapp" size={18} /></span>
+                  <span>
+                    <small>WhatsApp</small>
+                    {site.whatsapp}
+                  </span>
+                  <Icon name="arrow-up-right" size={18} class="pa" />
+                </a>
+              </li>
+            )
+          }
+          {
+            instagram && (
+              <li>
+                <a href={instagram} target="_blank" rel="noopener">
+                  <span class="pi"><Icon name="instagram" size={18} /></span>
+                  <span>
+                    <small>{t('contact.followUs')}</small>
+                    {igHandle}
+                  </span>
+                  <Icon name="arrow-up-right" size={18} class="pa" />
+                </a>
+              </li>
+            )
+          }
+          {
+            site.address && (
+              <li>
+                <a href={site.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${site.address} ${site.city}`)}`} target="_blank" rel="noopener">
+                  <span class="pi"><Icon name="pin" size={18} /></span>
+                  <span>
+                    <small>{t('contact.address')}</small>
+                    {site.address}{site.city && `, ${site.city}`}
+                  </span>
+                  <Icon name="arrow-up-right" size={18} class="pa" />
+                </a>
+              </li>
+            )
+          }
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Form + next steps -->
+  <section class="section" id="quote">
+    <div class="container c-grid">
+      <div class="form-card" data-reveal>
+        <h2>{t('contact.formTitle')}</h2>
+        <p class="form-lead">{t('contact.formLead')}</p>
+        <QuoteForm lang={lang} />
+      </div>
+
+      <aside class="next" data-reveal style="--delay:.1s">
+        <p class="eyebrow">{t('contact.nextTitle')}</p>
+        <ol>
+          {
+            next.map((n, i) => (
+              <li>
+                <span class="n">{i + 1}</span>
+                <div>
+                  <h3>{n.title}</h3>
+                  <p>{n.text}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ol>
+      </aside>
+    </div>
+  </section>
+
+  <!-- FAQ teaser -->
+  {
+    faq.length > 0 && (
+      <section class="section section--stone">
+        <div class="container c-faq">
+          <div data-reveal>
+            <p class="eyebrow">{t('home.faqEyebrow')}</p>
+            <h2>{t('contact.faqTitle')}</h2>
+            <a class="link-arrow" href={route(lang, 'faq')}>
+              {t('faq.more')}
+              <Icon name="arrow" />
+            </a>
+          </div>
+          <div data-reveal style="--delay:.1s">
+            <FaqList items={faq} />
+          </div>
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  /* ---------- Hero ---------- */
+  .c-hero {
+    padding-top: var(--header-h);
+    background: var(--stone-50);
+    border-bottom: 1px solid var(--line);
+  }
+  .c-hero-inner {
+    display: grid;
+    gap: 3rem;
+    align-items: center;
+    padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 5rem);
+  }
+  @media (min-width: 1000px) {
+    .c-hero-inner {
+      grid-template-columns: 1.15fr 1fr;
+      gap: 6rem;
+    }
+  }
+  .c-hero h1 {
+    font-size: clamp(2.18rem, 4.54vw, 3.86rem);
+    max-width: 12ch;
+    margin-bottom: 1.5rem;
+  }
+  .c-hero .lead {
+    max-width: 46ch;
+  }
+  .jump {
+    margin-top: 1.75rem;
+  }
+  .jump :global(.down) {
+    transform: rotate(90deg);
+  }
+  .jump:hover :global(.down) {
+    transform: rotate(90deg) translateX(4px);
+  }
+
+  .panel {
+    padding: clamp(1.75rem, 3vw, 2.5rem);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(198, 211, 227, 0.18), transparent 55%),
+      var(--navy);
+    color: #dfe4f2;
+    box-shadow: 0 40px 80px -50px rgba(39, 50, 114, 0.8);
+  }
+  .panel-call {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .panel-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 0.4rem;
+  }
+  .panel-phone {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.64vw, 2.11rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    transition: opacity 0.2s;
+  }
+  .panel-call:hover .panel-phone {
+    opacity: 0.85;
+  }
+  .panel-hours {
+    margin: 0.75rem 0 0;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .panel-list {
+    list-style: none;
+    margin: 1.75rem 0 0;
+    padding: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .panel-list li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .panel-list a {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.1rem 0;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .panel-list small {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .pi {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+  .panel-list :global(.pa) {
+    margin-left: auto;
+    opacity: 0.5;
+    transition:
+      opacity 0.2s,
+      transform 0.3s var(--ease);
+  }
+  .panel-list a:hover :global(.pa) {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+
+  /* ---------- Form ---------- */
+  .c-grid {
+    display: grid;
+    gap: 3rem;
+    align-items: start;
+  }
+  @media (min-width: 1000px) {
+    .c-grid {
+      grid-template-columns: 1.6fr 1fr;
+      gap: 5rem;
+    }
+    .next {
+      position: sticky;
+      top: calc(var(--header-h) + 2rem);
+    }
+  }
+  .form-card {
+    padding: clamp(1.5rem, 4vw, 3rem);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 40px 80px -60px rgba(14, 19, 48, 0.35);
+  }
+  .form-card h2 {
+    font-size: clamp(1.5rem, 2.29vw, 2.02rem);
+    margin-bottom: 0.4rem;
+  }
+  .form-lead {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .next ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    position: relative;
+  }
+  .next li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 1.25rem;
+    padding-bottom: 2rem;
+  }
+  .next li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 21.5px;
+    top: 44px;
+    bottom: 0;
+    width: 1px;
+    background: var(--stone-200);
+  }
+  .n {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--stone-200);
+    background: #fff;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .next h3 {
+    font-size: 1.1rem;
+    margin: 0.55rem 0 0.35rem;
+  }
+  .next p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---------- FAQ ---------- */
+  .c-faq {
+    display: grid;
+    gap: 2.5rem 6rem;
+  }
+  @media (min-width: 960px) {
+    .c-faq {
+      grid-template-columns: 1fr 1.6fr;
+      align-items: start;
+    }
+  }
+  .c-faq h2 {
+    max-width: 12ch;
+  }
+</style>

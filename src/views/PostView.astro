@@ -1,0 +1,149 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import CtaBand from '../components/CtaBand.astro';
+import ProductTile from '../components/ProductTile.astro';
+import { alternatesFor, readingTime, site, getProducts, splitId } from '../lib/content';
+import { useTranslations, route, dateLocale, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  post: CollectionEntry<'posts'>;
+}
+const { lang, post } = Astro.props;
+const t = useTranslations(lang);
+const { Content } = await render(post);
+const d = post.data;
+const alternates = await alternatesFor('posts', d.translationKey);
+// Products in the article's topic, shown as a next step after reading.
+const related = d.topic
+  ? (await getProducts(splitId(post.id).lang)).filter((p) => p.data.category === d.topic).slice(0, 3)
+  : [];
+const relatedSize: 'full' | 'wide' | '' = related.length === 1 ? 'full' : related.length === 2 ? 'wide' : '';
+const formatted = d.date.toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' });
+
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: d.title,
+  description: d.excerpt,
+  datePublished: d.date.toISOString(),
+  image: d.cover ? new URL(d.cover, Astro.site).href : undefined,
+  publisher: { '@type': 'Organization', name: site.name },
+};
+---
+
+<Base lang={lang} title={d.title} description={d.excerpt} image={d.cover} alternates={alternates}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleLd)} />
+
+  <article>
+    <header class="page-hero">
+      <div class="container narrow">
+        <ol class="breadcrumbs">
+          <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+          <li><a href={route(lang, 'blog')}>{t('nav.blog')}</a></li>
+        </ol>
+        {d.topic && <p class="eyebrow">{t(`cat.${d.topic}`)}</p>}
+        <h1>{d.title}</h1>
+        <p class="meta">
+          <time datetime={d.date.toISOString()}>{formatted}</time> · {readingTime(post.body)} {t('blog.minRead')}
+        </p>
+      </div>
+    </header>
+
+    {
+      d.cover && (
+        <div class="container cover">
+          <img src={d.cover} alt={d.coverAlt} width="1600" height="900" fetchpriority="high" />
+        </div>
+      )
+    }
+
+    <div class="section">
+      <div class="container narrow">
+        <div class="prose">
+          <Content />
+        </div>
+        <a class="link-arrow back" href={route(lang, 'blog')}>
+          <Icon name="arrow" class="flip" />
+          {t('blog.back')}
+        </a>
+      </div>
+    </div>
+  </article>
+
+  {
+    related.length > 0 && (
+      <section class="section section--stone">
+        <div class="container">
+          <div class="section-head" data-reveal>
+            <p class="eyebrow">{t('nav.products')}</p>
+            <h2>{t('product.related')}</h2>
+          </div>
+          <div class:list={['related', relatedSize]}>
+            {related.map((p) => (
+              <div data-reveal>
+                <ProductTile product={p} lang={splitId(post.id).lang} size={relatedSize} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  .narrow {
+    max-width: 860px;
+  }
+  .page-hero h1 {
+    max-width: 22ch;
+    font-size: clamp(1.85rem, 3.7vw, 3.19rem);
+  }
+  .meta {
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .cover {
+    margin-top: 3rem;
+  }
+  .cover img {
+    width: 100%;
+    max-height: 640px;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+  }
+  .prose {
+    font-size: 1.125rem;
+  }
+  .back {
+    margin-top: 3rem;
+  }
+  .related {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .related {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .related.full {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (min-width: 1000px) {
+    .related {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .related.wide {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .back :global(.flip) {
+    transform: rotate(180deg);
+  }
+</style>

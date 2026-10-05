@@ -1,0 +1,1237 @@
+---
+import Icon from './Icon.astro';
+import OpenStatus from './OpenStatus.astro';
+import { getProducts, groupByCategory, site, splitId, hoursFor } from '../lib/content';
+import { useTranslations, route, routes, productUrl, locales, languageNames, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  alternates: Partial<Record<Lang, string>>;
+  overlay?: boolean;
+}
+
+const { lang, alternates, overlay = false } = Astro.props;
+const t = useTranslations(lang);
+const groups = groupByCategory(await getProducts(lang));
+const path = Astro.url.pathname;
+
+const catIcon = {
+  windows: 'window',
+  doors: 'door',
+  shutters: 'shutter',
+  flyscreens: 'flyscreen',
+  railings: 'railing',
+  partitions: 'partition',
+  shade: 'awning',
+} as const;
+
+const links = [
+  { href: route(lang, 'about'), label: t('nav.about') },
+  { href: route(lang, 'blog'), label: t('nav.blog') },
+  { href: route(lang, 'faq'), label: t('nav.faq') },
+  { href: route(lang, 'contact'), label: t('nav.contact') },
+];
+const isActive = (href: string) => path.startsWith(href) && href !== route(lang, 'home');
+const productsActive =
+  path.startsWith(route(lang, 'products')) ||
+  groups.some(({ items }) => items.some((p) => path === productUrl(lang, splitId(p.id).slug)));
+const catHref = (cat: string) => `${routes.products[lang]}#${cat}`;
+const typesLabel = (n: number) => `${n} ${t(n === 1 ? 'product.type' : 'product.typesCount')}`;
+const instagram = site.social.instagram;
+---
+
+<header class:list={['site-header', { 'is-overlay': overlay }]} data-header>
+  <div class="container bar">
+    <a class="logo" href={route(lang, 'home')} aria-label={`${site.name} — home`}>
+      <img src="/uploads/logo-mk-aluplast.webp" alt={site.name} width="170" height="48" />
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <ul class="nav-list">
+        <li class="has-mega" data-mega>
+          <button
+            class="nav-link"
+            aria-expanded="false"
+            aria-controls="mega"
+            aria-current={productsActive ? 'page' : undefined}
+            data-mega-toggle
+          >
+            {t('nav.products')}
+            <Icon name="chevron" size={16} />
+          </button>
+
+          <div class="mega" id="mega">
+            <div class="container mega-inner">
+              <!-- Categories -->
+              <div class="mega-cats" role="tablist" aria-orientation="vertical" aria-label={t('nav.products')}>
+                {
+                  groups.map(({ cat, items }, i) => (
+                    <button
+                      type="button"
+                      role="tab"
+                      id={`mega-tab-${cat}`}
+                      aria-controls={`mega-panel-${cat}`}
+                      aria-selected={i === 0 ? 'true' : 'false'}
+                      tabindex={i === 0 ? 0 : -1}
+                      data-mega-cat
+                    >
+                      <span class="cat-icon">
+                        <Icon name={catIcon[cat]} size={20} />
+                      </span>
+                      <span class="cat-name">{t(`cat.${cat}`)}</span>
+                      <span class="cat-count">{items.length}</span>
+                    </button>
+                  ))
+                }
+                <a class="mega-all" href={route(lang, 'products')}>
+                  {t('nav.allProducts')}
+                  <Icon name="arrow" size={16} />
+                </a>
+              </div>
+
+              <!-- Products of the active category -->
+              <div class="mega-panels">
+                {
+                  groups.map(({ cat, items }, i) => (
+                    <div
+                      class="mega-panel"
+                      role="tabpanel"
+                      id={`mega-panel-${cat}`}
+                      aria-labelledby={`mega-tab-${cat}`}
+                      hidden={i !== 0}
+                      data-mega-panel
+                    >
+                      <div class="panel-head">
+                        <p>{t(`cat.${cat}`)}</p>
+                        <a href={catHref(cat)}>
+                          {t('nav.viewAll')}
+                          <Icon name="arrow" size={14} />
+                        </a>
+                      </div>
+                      <ul class:list={['mega-products', { one: items.length === 1 }]}>
+                        {items.map((p) => (
+                          <li>
+                            <a class="mp" href={productUrl(lang, splitId(p.id).slug)}>
+                              <span class="mp-img">
+                                <img src={p.data.heroImage} alt="" loading="lazy" decoding="async" width="320" height="200" />
+                              </span>
+                              <span class="mp-body">
+                                <span class="mp-title">
+                                  {p.data.title}
+                                  <Icon name="arrow-up-right" size={16} />
+                                </span>
+                                <span class="mp-summary">{p.data.summary}</span>
+                                {p.data.types.length > 0 && <span class="mp-meta">{typesLabel(p.data.types.length)}</span>}
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                }
+              </div>
+
+              <!-- Help card -->
+              <aside class="mega-aside">
+                <p class="aside-title">{t('nav.notSure')}</p>
+                <p class="aside-text">{t('nav.notSureText')}</p>
+                <a class="btn btn--light aside-btn" href={route(lang, 'contact')}>
+                  {t('nav.quote')}
+                  <Icon name="arrow" />
+                </a>
+                {
+                  site.phone && (
+                    <a class="aside-phone" href={`tel:${site.phone}`}>
+                      <Icon name="phone" size={16} />
+                      {site.phoneDisplay || site.phone}
+                    </a>
+                  )
+                }
+                {
+                  site.partners.length > 0 && (
+                    <div class="aside-partners">
+                      <p class="aside-label">{t('partners.eyebrow')}</p>
+                      {site.partners.map((pt) => (
+                        <img src={pt.logo} alt={pt.name} loading="lazy" width="80" height="28" />
+                      ))}
+                    </div>
+                  )
+                }
+              </aside>
+            </div>
+          </div>
+        </li>
+        {
+          links.map((l) => (
+            <li>
+              <a class="nav-link" href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="actions">
+      <div class="lang" data-lang>
+        <button
+          type="button"
+          class="lang-btn"
+          aria-expanded="false"
+          aria-controls="lang-menu"
+          aria-label={`${t('nav.language')}: ${languageNames[lang]}`}
+          data-lang-toggle
+        >
+          <img class="flag" src={`/flags/${lang}.svg`} alt="" width="20" height="20" />
+          <span>{lang.toUpperCase()}</span>
+          <Icon name="chevron" size={14} />
+        </button>
+        <ul class="lang-menu" id="lang-menu" data-lang-menu>
+          {
+            locales.map((l) => (
+              <li>
+                <a
+                  href={alternates[l] ?? route(l, 'home')}
+                  hreflang={l}
+                  lang={l}
+                  aria-current={l === lang ? 'true' : undefined}
+                >
+                  <img class="flag" src={`/flags/${l}.svg`} alt="" width="20" height="20" />
+                  <span class="lang-name">{languageNames[l]}</span>
+                  <span class="lang-code">{l.toUpperCase()}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <a class="btn quote" href={route(lang, 'contact')}>{t('nav.quote')}</a>
+      <button class="burger" aria-expanded="false" aria-controls="drawer" data-drawer-toggle>
+        <span class="sr-only">{t('nav.menu')}</span>
+        <Icon name="menu" class="i-open" />
+        <Icon name="close" class="i-close" />
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile drawer -->
+  <div class="drawer" id="drawer" data-drawer hidden>
+    <div class="drawer-scroll">
+      <div class="container drawer-inner">
+        <p class="drawer-label">{t('nav.products')}</p>
+        <ul class="drawer-cats">
+          {
+            groups.map(({ cat, items }) => (
+              <li>
+                <details name="drawer-cat">
+                  <summary>
+                    <span class="cat-icon">
+                      <Icon name={catIcon[cat]} size={20} />
+                    </span>
+                    <span class="d-cat">{t(`cat.${cat}`)}</span>
+                    <span class="cat-count">{items.length}</span>
+                    <Icon name="chevron" size={18} class="d-chev" />
+                  </summary>
+                  <ul class="d-products">
+                    {items.map((p) => (
+                      <li>
+                        <a href={productUrl(lang, splitId(p.id).slug)}>
+                          <img src={p.data.heroImage} alt="" loading="lazy" width="96" height="72" />
+                          <span>
+                            <strong>{p.data.title}</strong>
+                            {p.data.types.length > 0 && <small>{typesLabel(p.data.types.length)}</small>}
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </li>
+            ))
+          }
+        </ul>
+        <a class="d-all" href={route(lang, 'products')}>
+          {t('nav.allProducts')}
+          <Icon name="arrow" size={16} />
+        </a>
+
+        <p class="drawer-label">{t('nav.pages')}</p>
+        <ul class="drawer-links">
+          {
+            links.map((l) => (
+              <li>
+                <a href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>
+                  {l.label}
+                  <Icon name="arrow" size={18} />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="drawer-foot">
+      <div class="container">
+        <div class="d-status">
+          <OpenStatus lang={lang} />
+          {hoursFor(lang) && <span class="d-hours">{hoursFor(lang)}</span>}
+        </div>
+        <div class="d-actions">
+          {
+            site.phone && (
+              <a class="btn btn--ghost" href={`tel:${site.phone}`}>
+                <Icon name="phone" size={18} />
+                {t('cta.call')}
+              </a>
+            )
+          }
+          <a class="btn" href={route(lang, 'contact')}>
+            {t('nav.quote')}
+            <Icon name="arrow" />
+          </a>
+        </div>
+        <div class="d-meta">
+          <div class="d-lang" aria-label={t('nav.language')} role="group">
+            {
+              locales.map((l) => (
+                <a
+                  href={alternates[l] ?? route(l, 'home')}
+                  hreflang={l}
+                  lang={l}
+                  aria-current={l === lang ? 'true' : undefined}
+                  aria-label={languageNames[l]}
+                >
+                  <img class="flag" src={`/flags/${l}.svg`} alt="" width="20" height="20" />
+                  {l.toUpperCase()}
+                </a>
+              ))
+            }
+          </div>
+          {
+            instagram && (
+              <a class="d-social" href={instagram} target="_blank" rel="noopener" aria-label="Instagram">
+                <Icon name="instagram" size={20} />
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mega-backdrop" aria-hidden="true" data-mega-backdrop></div>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--line);
+    transition:
+      background 0.4s var(--ease),
+      border-color 0.4s var(--ease),
+      color 0.4s var(--ease);
+  }
+  .bar {
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+  .logo img {
+    height: 40px;
+    width: auto;
+    transition: filter 0.4s var(--ease);
+  }
+
+  /* Transparent over hero until the user scrolls or opens a menu */
+  .is-overlay:not(.is-scrolled):not(.is-open):not(.mega-open) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+  .is-overlay:not(.is-scrolled):not(.is-open):not(.mega-open) .logo img {
+    filter: brightness(0) invert(1);
+  }
+  .is-overlay:not(.is-scrolled):not(.is-open):not(.mega-open) .quote {
+    --btn-bg: #fff;
+    --btn-fg: var(--ink);
+  }
+  /* backdrop-filter makes the header a containing block for fixed children,
+     which would trap the drawer and the dimmed backdrop inside its 76px box */
+  .site-header.mega-open,
+  .site-header.is-open {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .nav {
+    margin-left: auto;
+    display: none;
+  }
+  .nav-list {
+    display: flex;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: var(--header-h);
+    padding: 0 0.9rem;
+    background: none;
+    border: 0;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0.9rem;
+    right: 0.9rem;
+    bottom: 22px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s var(--ease);
+  }
+  .nav-link:hover::after,
+  .nav-link[aria-current='page']::after,
+  .nav-link[aria-expanded='true']::after {
+    transform: scaleX(1);
+  }
+  .nav-link :global(svg) {
+    transition: transform 0.3s var(--ease);
+  }
+  .nav-link[aria-expanded='true'] :global(svg) {
+    transform: rotate(180deg);
+  }
+
+  /* ---------- Mega menu ---------- */
+  .mega {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 2;
+    background: #fff;
+    color: var(--text);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 40px 80px -40px rgba(14, 19, 48, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition:
+      opacity 0.3s var(--ease),
+      transform 0.3s var(--ease),
+      visibility 0.3s;
+  }
+  .has-mega.is-open .mega {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  .mega-backdrop {
+    position: fixed;
+    inset: var(--header-h) 0 0;
+    z-index: 1;
+    background: rgba(14, 19, 48, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.3s var(--ease),
+      visibility 0.3s;
+  }
+  .mega-open .mega-backdrop {
+    opacity: 1;
+    visibility: visible;
+  }
+  .mega-inner {
+    display: grid;
+    grid-template-columns: 250px 1fr 270px;
+    gap: 2.5rem;
+    padding-block: 2rem 2.25rem;
+  }
+
+  /* Category rail */
+  .mega-cats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-right: 2rem;
+    border-right: 1px solid var(--line);
+  }
+  [data-mega-cat] {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .cat-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--stone-50);
+    color: var(--text-muted);
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .cat-name {
+    flex: 1;
+  }
+  .cat-count {
+    min-width: 1.6em;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    background: var(--stone-100);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  [data-mega-cat]:hover {
+    background: var(--stone-50);
+  }
+  [data-mega-cat][aria-selected='true'] {
+    background: var(--steel-50);
+    color: var(--navy);
+  }
+  [data-mega-cat][aria-selected='true'] .cat-icon {
+    background: var(--navy);
+    color: #fff;
+  }
+  [data-mega-cat][aria-selected='true'] .cat-count {
+    background: #fff;
+    color: var(--navy);
+  }
+  .mega-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding: 1rem 0.75rem 0;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--navy);
+    text-decoration: none;
+  }
+  .mega-all :global(svg) {
+    transition: transform 0.3s var(--ease);
+  }
+  .mega-all:hover :global(svg) {
+    transform: translateX(3px);
+  }
+
+  /* Product panel */
+  .mega-panel {
+    animation: panel-in 0.35s var(--ease);
+  }
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+  }
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .panel-head p {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .panel-head a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--navy);
+    text-decoration: none;
+  }
+  .mega-products {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  .mega-products.one {
+    grid-template-columns: minmax(0, 420px);
+  }
+  .mp {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      border-color 0.3s var(--ease),
+      box-shadow 0.3s var(--ease);
+  }
+  .mp:hover,
+  .mp:focus-visible {
+    border-color: var(--stone-400);
+    box-shadow: 0 24px 48px -36px rgba(14, 19, 48, 0.4);
+  }
+  .mp-img {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--stone-100);
+  }
+  .mp-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s var(--ease);
+  }
+  .mp:hover .mp-img img {
+    transform: scale(1.05);
+  }
+  .mp-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem 1rem;
+    flex: 1;
+  }
+  .mp-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .mp-title :global(svg) {
+    flex: none;
+    color: var(--stone-400);
+    transition:
+      color 0.2s,
+      transform 0.3s var(--ease);
+  }
+  .mp:hover .mp-title :global(svg) {
+    color: var(--navy);
+    transform: translate(2px, -2px);
+  }
+  .mp-summary {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mp-meta {
+    margin-top: auto;
+    padding-top: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  /* Help card */
+  .mega-aside {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(198, 211, 227, 0.2), transparent 55%),
+      var(--navy);
+    color: #dfe4f2;
+  }
+  .aside-title {
+    margin: 0 0 0.4rem;
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #fff;
+  }
+  .aside-text {
+    margin: 0 0 1.25rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  .aside-btn {
+    width: 100%;
+    min-height: 46px;
+    font-size: 0.9rem;
+  }
+  .aside-phone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+  }
+  .aside-partners {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 1.25rem;
+  }
+  .aside-label {
+    flex-basis: 100%;
+    margin: 0 0 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .aside-partners img {
+    height: 26px;
+    width: auto;
+    max-width: 92px;
+    object-fit: contain;
+    padding: 0.3rem 0.5rem;
+    border-radius: 5px;
+    background: #fff;
+    box-sizing: content-box;
+  }
+
+  /* ---------- Actions ---------- */
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+  }
+  /* Language switcher: current flag + code, opens a small menu */
+  .flag {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(14, 19, 48, 0.12);
+  }
+  .lang {
+    position: relative;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .lang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 0.55rem;
+    background: none;
+    border: 0;
+    border-radius: var(--radius);
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .lang-btn:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .lang-btn :global(svg) {
+    opacity: 0.6;
+    transition: transform 0.3s var(--ease);
+  }
+  .lang-btn[aria-expanded='true'] :global(svg) {
+    transform: rotate(180deg);
+  }
+  .lang-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 3;
+    min-width: 200px;
+    margin: 0;
+    padding: 0.4rem;
+    list-style: none;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 48px -24px rgba(14, 19, 48, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition:
+      opacity 0.2s var(--ease),
+      transform 0.2s var(--ease),
+      visibility 0.2s;
+  }
+  .lang.is-open .lang-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  .lang-menu a {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+    letter-spacing: 0;
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+  .lang-menu a:hover {
+    background: var(--stone-50);
+  }
+  .lang-menu a[aria-current] {
+    background: var(--steel-50);
+    color: var(--navy);
+    font-weight: 600;
+  }
+  .lang-name {
+    flex: 1;
+  }
+  .lang-code {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .quote {
+    display: none;
+    min-height: 44px;
+    padding: 0.6rem 1.2rem;
+  }
+  .burger {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: 1px solid currentColor;
+    border-color: color-mix(in srgb, currentColor 30%, transparent);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .burger :global(.i-close),
+  .burger[aria-expanded='true'] :global(.i-open) {
+    display: none;
+  }
+  .burger[aria-expanded='true'] :global(.i-close) {
+    display: block;
+  }
+
+  /* ---------- Mobile drawer ---------- */
+  .drawer {
+    position: fixed;
+    inset: var(--header-h) 0 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    color: var(--text);
+    animation: drawer-in 0.35s var(--ease);
+  }
+  @keyframes drawer-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+  .drawer-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .drawer-inner {
+    padding-block: 1.25rem 2rem;
+  }
+  .drawer-label {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .drawer ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .drawer-cats > li {
+    border-bottom: 1px solid var(--line);
+  }
+  .drawer summary {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .drawer summary::-webkit-details-marker {
+    display: none;
+  }
+  .d-cat {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .drawer summary :global(.d-chev) {
+    color: var(--text-muted);
+    transition: transform 0.3s var(--ease);
+  }
+  .drawer details[open] summary :global(.d-chev) {
+    transform: rotate(180deg);
+  }
+  .drawer details[open] .cat-icon {
+    background: var(--navy);
+    color: #fff;
+  }
+  .d-products {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0 0 1rem !important;
+  }
+  .d-products a {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+  }
+  .d-products img {
+    flex: none;
+    width: 64px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .d-products strong {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .d-products small {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .d-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1rem 0 2rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--navy);
+    text-decoration: none;
+  }
+  .drawer-links a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .drawer-links a :global(svg) {
+    color: var(--stone-400);
+  }
+  .drawer-links a[aria-current='page'] {
+    color: var(--navy);
+  }
+  .drawer-foot {
+    flex: none;
+    padding: 1rem 0 calc(1rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--stone-50);
+  }
+  .d-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.85rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  /* The open-status pill is styled for dark backgrounds — adapt it here */
+  .d-status :global(.status) {
+    background: #fff;
+    border-color: var(--line);
+    color: var(--ink);
+  }
+  .d-actions {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+  }
+  .d-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.85rem;
+  }
+  .d-lang {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .d-lang a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 40px;
+    padding: 0 0.75rem 0 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .d-lang a[aria-current] {
+    border-color: var(--navy);
+    color: var(--navy);
+    box-shadow: inset 0 0 0 1px var(--navy);
+  }
+  .d-social {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  @media (min-width: 640px) {
+    .quote {
+      display: inline-flex;
+    }
+  }
+  @media (min-width: 1100px) {
+    .nav {
+      display: block;
+    }
+    .actions {
+      margin-left: 0;
+    }
+    .burger,
+    .drawer {
+      display: none !important;
+    }
+  }
+  @media (min-width: 1100px) and (max-width: 1279px) {
+    .mega-inner {
+      grid-template-columns: 220px 1fr;
+    }
+    .mega-aside {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]')!;
+
+  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ---------- Mega menu ----------
+  const mega = header.querySelector<HTMLElement>('[data-mega]')!;
+  const megaToggle = header.querySelector<HTMLButtonElement>('[data-mega-toggle]')!;
+  const backdrop = header.querySelector<HTMLElement>('[data-mega-backdrop]')!;
+  const cats = [...header.querySelectorAll<HTMLButtonElement>('[data-mega-cat]')];
+  const panels = [...header.querySelectorAll<HTMLElement>('[data-mega-panel]')];
+  let closeTimer: number | undefined;
+  let hoverTimer: number | undefined;
+
+  const setMega = (open: boolean) => {
+    mega.classList.toggle('is-open', open);
+    header.classList.toggle('mega-open', open);
+    megaToggle.setAttribute('aria-expanded', String(open));
+  };
+  const selectCat = (index: number, focus = false) => {
+    cats.forEach((c, i) => {
+      const on = i === index;
+      c.setAttribute('aria-selected', String(on));
+      c.tabIndex = on ? 0 : -1;
+      panels[i].hidden = !on;
+    });
+    if (focus) cats[index].focus();
+  };
+
+  megaToggle.addEventListener('click', () => {
+    const open = !mega.classList.contains('is-open');
+    setMega(open);
+    if (open) requestAnimationFrame(() => cats.find((c) => c.tabIndex === 0)?.focus());
+  });
+  backdrop.addEventListener('click', () => setMega(false));
+
+  cats.forEach((cat, i) => {
+    cat.addEventListener('click', () => selectCat(i));
+    // Small hover-intent delay so moving diagonally to the products doesn't flip categories
+    cat.addEventListener('mouseenter', () => {
+      clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => selectCat(i), 90);
+    });
+    cat.addEventListener('mouseleave', () => clearTimeout(hoverTimer));
+    cat.addEventListener('keydown', (e) => {
+      const keys: Record<string, number> = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: cats.length - 1 };
+      if (e.key in keys) {
+        e.preventDefault();
+        selectCat((keys[e.key] + cats.length) % cats.length, true);
+      }
+      // Jump into the products of the active category
+      if (e.key === 'ArrowRight') {
+        const first = panels[i].querySelector<HTMLElement>('a');
+        if (first) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  });
+
+  if (matchMedia('(hover: hover)').matches) {
+    mega.addEventListener('mouseenter', () => {
+      clearTimeout(closeTimer);
+      setMega(true);
+    });
+    mega.addEventListener('mouseleave', () => {
+      closeTimer = window.setTimeout(() => setMega(false), 180);
+    });
+  }
+  mega.addEventListener('focusout', (e) => {
+    if (!mega.contains(e.relatedTarget as Node)) setMega(false);
+  });
+  // ---------- Language menu ----------
+  const langBox = header.querySelector<HTMLElement>('[data-lang]')!;
+  const langToggle = langBox.querySelector<HTMLButtonElement>('[data-lang-toggle]')!;
+  const setLang = (open: boolean) => {
+    langBox.classList.toggle('is-open', open);
+    langToggle.setAttribute('aria-expanded', String(open));
+  };
+  langToggle.addEventListener('click', () => {
+    const open = !langBox.classList.contains('is-open');
+    setLang(open);
+    if (open) langBox.querySelector<HTMLElement>('[aria-current]')?.focus();
+  });
+  document.addEventListener('click', (e) => {
+    if (!langBox.contains(e.target as Node)) setLang(false);
+  });
+  langBox.addEventListener('focusout', (e) => {
+    if (!langBox.contains(e.relatedTarget as Node)) setLang(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (langBox.classList.contains('is-open')) {
+      setLang(false);
+      langToggle.focus();
+    }
+    if (mega.classList.contains('is-open')) {
+      setMega(false);
+      megaToggle.focus();
+    }
+    if (!drawer.hidden) {
+      setDrawer(false);
+      drawerToggle.focus();
+    }
+  });
+
+  // ---------- Mobile drawer ----------
+  const drawer = header.querySelector<HTMLElement>('[data-drawer]')!;
+  const drawerToggle = header.querySelector<HTMLButtonElement>('[data-drawer-toggle]')!;
+  const setDrawer = (open: boolean) => {
+    drawer.hidden = !open;
+    header.classList.toggle('is-open', open);
+    drawerToggle.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  };
+  drawerToggle.addEventListener('click', () => setDrawer(drawer.hidden));
+</script>

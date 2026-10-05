@@ -1,0 +1,111 @@
+---
+import Icon from './Icon.astro';
+import type { CollectionEntry } from 'astro:content';
+import { splitId } from '../lib/content';
+import { productUrl, useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  product: CollectionEntry<'products'>;
+  lang: Lang;
+  size?: 'default' | 'large';
+}
+const { product, lang, size = 'default' } = Astro.props;
+const t = useTranslations(lang);
+const { title, summary, heroImage, heroAlt, category } = product.data;
+---
+
+<a class:list={['card', size]} href={productUrl(lang, splitId(product.id).slug)}>
+  <div class="media">
+    <img src={heroImage} alt={heroAlt || title} loading="lazy" decoding="async" width="800" height="600" />
+  </div>
+  <div class="body">
+    <p class="cat">{t(`cat.${category}`)}</p>
+    <h3>{title}</h3>
+    <p class="summary">{summary}</p>
+    <span class="more" aria-hidden="true"><Icon name="arrow-up-right" size={20} /></span>
+  </div>
+</a>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease);
+  }
+  .card:hover {
+    border-color: var(--stone-400);
+    box-shadow: 0 30px 60px -40px rgba(14, 19, 48, 0.35);
+  }
+  .media {
+    aspect-ratio: 4 / 3;
+    background: var(--stone-100);
+    overflow: hidden;
+  }
+  .large .media {
+    aspect-ratio: 16 / 10;
+  }
+  .media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1.2s var(--ease);
+  }
+  .card:hover img {
+    transform: scale(1.05);
+  }
+  .body {
+    padding: 1.5rem 1.5rem 1.75rem;
+    position: relative;
+    flex: 1;
+  }
+  .cat {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin: 0 0 0.6rem;
+  }
+  h3 {
+    margin: 0 0 0.5rem;
+    padding-right: 2.5rem;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .more {
+    position: absolute;
+    top: 1.4rem;
+    right: 1.4rem;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    transition:
+      background 0.3s var(--ease),
+      color 0.3s var(--ease),
+      border-color 0.3s var(--ease);
+  }
+  .card:hover .more {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+</style>

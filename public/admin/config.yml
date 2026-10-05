@@ -1,0 +1,309 @@
+# Sveltia CMS (Decap-compatible) — https://sveltiacms.app
+# Edits are committed to GitHub; the GitHub Action then rebuilds and uploads the site to Namecheap.
+
+backend:
+  name: github
+  repo: OrgestLikaj/mkaluplast
+  branch: main
+  # GitHub OAuth is handled by the small PHP app in /oauth/ on the Namecheap server.
+  base_url: https://mkaluplast.com
+  auth_endpoint: oauth/auth.php
+  commit_messages:
+    create: 'content: create {{collection}} “{{slug}}”'
+    update: 'content: update {{collection}} “{{slug}}”'
+    delete: 'content: delete {{collection}} “{{slug}}”'
+    uploadMedia: 'content: upload “{{path}}”'
+    deleteMedia: 'content: delete “{{path}}”'
+
+site_url: https://mkaluplast.com
+display_url: https://mkaluplast.com
+logo_url: /uploads/logo-mk-aluplast.webp
+
+media_folder: public/uploads
+public_folder: /uploads
+
+slug:
+  encoding: ascii
+  clean_accents: true
+
+i18n:
+  structure: multiple_folders
+  locales: [en, it, sq]
+  default_locale: en
+
+collections:
+  # ---------------------------------------------------------------- Products
+  - name: products
+    label: Products
+    label_singular: Product
+    icon: window
+    folder: src/content/products
+    extension: md
+    format: frontmatter
+    create: true
+    i18n: true
+    slug: '{{title | localize}}'
+    summary: '{{title}} — {{category}}'
+    sortable_fields: [order, title, category]
+    preview_path: '/{{locale}}/{{slug}}/'
+    omit_default_locale_from_preview_path: true
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - name: category
+        label: Category
+        widget: select
+        i18n: duplicate
+        options:
+          - { label: Windows, value: windows }
+          - { label: Doors, value: doors }
+          - { label: Shutters, value: shutters }
+          - { label: Flyscreens, value: flyscreens }
+          - { label: Railings & Fences, value: railings }
+          - { label: Partition Walls, value: partitions }
+          - { label: Shade Systems, value: shade }
+      - { name: order, label: Menu order, widget: number, value_type: int, default: 100, i18n: duplicate, hint: 'Lower numbers appear first.' }
+      - { name: summary, label: Short summary, widget: text, i18n: true, hint: 'One or two sentences shown on cards and at the top of the page.' }
+      - { name: heroImage, label: Main image, widget: image, i18n: duplicate }
+      - { name: heroAlt, label: Main image description (alt text), widget: string, i18n: true, required: false }
+      - name: features
+        label: Key benefits
+        widget: list
+        i18n: true
+        required: false
+        summary: '{{fields.title}}'
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: text, label: Text, widget: text }
+      - name: types
+        label: Available types
+        widget: list
+        i18n: true
+        required: false
+        summary: '{{fields.name}}'
+        fields:
+          - { name: name, label: Name, widget: string }
+          - { name: text, label: Description, widget: text, required: false }
+          - { name: image, label: Image, widget: image, required: false }
+          - name: specs
+            label: Technical data
+            widget: list
+            required: false
+            hint: 'One line per spec. Write “Label: value” (e.g. “Glazing: up to 48 mm”) for the spec table — numeric values become the headline figures. Lines without a colon show as features.'
+      - name: gallery
+        label: Gallery
+        widget: list
+        i18n: duplicate
+        required: false
+        field: { name: image, label: Image, widget: image }
+      - { name: seoDescription, label: SEO description, widget: text, i18n: true, required: false, hint: 'Shown in Google results. ~150 characters.' }
+      - { name: body, label: Page text, widget: markdown, i18n: true }
+
+  # ---------------------------------------------------------------- Blog
+  - name: posts
+    label: Blog
+    label_singular: Article
+    icon: article
+    folder: src/content/posts
+    extension: md
+    format: frontmatter
+    create: true
+    i18n: true
+    slug: '{{title | localize}}'
+    sortable_fields: [date, title]
+    preview_path: '/{{locale}}/blog/{{slug}}/'
+    omit_default_locale_from_preview_path: true
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - { name: date, label: Publish date, widget: datetime, format: 'YYYY-MM-DD', time_format: false, i18n: duplicate }
+      - { name: excerpt, label: Excerpt, widget: text, i18n: true }
+      - { name: cover, label: Cover image, widget: image, required: false, i18n: duplicate }
+      - { name: coverAlt, label: Cover description (alt text), widget: string, required: false, i18n: true }
+      - name: topic
+        label: Topic
+        widget: select
+        required: false
+        i18n: duplicate
+        hint: 'Used for the blog filters and to show related products under the article.'
+        options:
+          - { label: Windows, value: windows }
+          - { label: Doors, value: doors }
+          - { label: Shutters, value: shutters }
+          - { label: Flyscreens, value: flyscreens }
+          - { label: Railings & Fences, value: railings }
+          - { label: Partition Walls, value: partitions }
+          - { label: Shade Systems, value: shade }
+      - { name: draft, label: Draft (hidden from site), widget: boolean, default: false, i18n: duplicate }
+      - { name: body, label: Article, widget: markdown, i18n: true }
+
+  # ---------------------------------------------------------------- Pages
+  - name: pages
+    label: Pages
+    label_singular: Page
+    icon: description
+    folder: src/content/pages
+    extension: md
+    format: frontmatter
+    create: false
+    delete: false
+    i18n: true
+    fields:
+      - { name: title, label: Title (browser tab & Google), widget: string, i18n: true }
+      - { name: headline, label: Headline (large heading), widget: string, required: false, i18n: true }
+      - { name: lead, label: Intro paragraph, widget: text, required: false, i18n: true }
+      - { name: heroImage, label: Main image, widget: image, required: false, i18n: duplicate }
+      - { name: secondaryImage, label: Second image (overlaps the main one), widget: image, required: false, i18n: duplicate }
+      - { name: foundedYear, label: Year founded, widget: number, value_type: int, required: false, i18n: duplicate, hint: 'Used for the “Since” badge and the years-of-experience figure.' }
+      - { name: statement, label: Opening statement, widget: text, required: false, i18n: true }
+      - { name: body, label: Our story, widget: markdown, i18n: true }
+      - name: timeline
+        label: Timeline
+        widget: list
+        required: false
+        i18n: true
+        summary: '{{fields.label}} — {{fields.title}}'
+        fields:
+          - { name: label, label: 'Label (e.g. a year)', widget: string }
+          - { name: title, label: Title, widget: string }
+          - { name: text, label: Text, widget: text }
+      - { name: mission, label: Mission statement, widget: text, required: false, i18n: true }
+      - name: reasons
+        label: Why choose us
+        widget: list
+        required: false
+        i18n: true
+        summary: '{{fields.title}}'
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: text, label: Text, widget: text }
+          - name: icon
+            label: Icon
+            widget: select
+            required: false
+            options: [award, shield, ruler, wrench, layers, building]
+      - { name: seoDescription, label: SEO description, widget: text, required: false, i18n: true }
+
+  # ---------------------------------------------------------------- Homepage
+  - name: home
+    label: Homepage
+    icon: home
+    i18n: false
+    files:
+      - name: home_en
+        label: Homepage (English)
+        file: src/content/home/en.json
+        fields: &homeFields
+          - { name: heroTitle, label: Hero title, widget: string }
+          - { name: heroSubtitle, label: Hero subtitle, widget: text }
+          - { name: heroImage, label: Hero image, widget: image }
+          - { name: aboutImage, label: About section — main image, widget: image, required: false, hint: 'The About section text comes from Pages → About.' }
+          - { name: aboutImageSecondary, label: About section — small image, widget: image, required: false }
+          - name: steps
+            label: Process steps
+            widget: list
+            required: false
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: text, label: Text, widget: text }
+              - { name: icon, label: Icon, widget: select, required: false, options: [ruler, layers, factory, wrench, shield, check, award, building] }
+      - name: home_it
+        label: Homepage (Italiano)
+        file: src/content/home/it.json
+        fields: *homeFields
+      - name: home_sq
+        label: Homepage (Shqip)
+        file: src/content/home/sq.json
+        fields: *homeFields
+
+  # ---------------------------------------------------------------- FAQ
+  - name: faq
+    label: FAQ
+    icon: help
+    i18n: false
+    files:
+      - name: faq_en
+        label: FAQ (English)
+        file: src/content/faq/en.json
+        fields: &faqFields
+          - name: items
+            label: Questions
+            widget: list
+            summary: '{{fields.q}}'
+            fields:
+              - { name: q, label: Question, widget: string }
+              - { name: a, label: Answer, widget: text }
+      - name: faq_it
+        label: FAQ (Italiano)
+        file: src/content/faq/it.json
+        fields: *faqFields
+      - name: faq_sq
+        label: FAQ (Shqip)
+        file: src/content/faq/sq.json
+        fields: *faqFields
+
+  # ---------------------------------------------------------------- Settings
+  - name: settings
+    label: Settings
+    icon: settings
+    i18n: false
+    files:
+      - name: site
+        label: Company details
+        file: src/content/settings/site.json
+        fields:
+          - { name: name, label: Company name, widget: string }
+          - { name: tagline, label: Tagline, widget: string }
+          - { name: phone, label: Phone (international format, e.g. +355...), widget: string, required: false }
+          - { name: phoneDisplay, label: Phone (as displayed), widget: string, required: false }
+          - { name: email, label: Email, widget: string, required: false }
+          - { name: whatsapp, label: WhatsApp number, widget: string, required: false }
+          - { name: address, label: Street address, widget: string, required: false }
+          - { name: city, label: City, widget: string, required: false }
+          - { name: country, label: Country, widget: string, required: false }
+          - { name: hours, label: Opening hours (English), widget: string, required: false }
+          - { name: hoursIt, label: Opening hours (Italiano), widget: string, required: false }
+          - { name: hoursSq, label: Opening hours (Shqip), widget: string, required: false }
+          - name: schedule
+            label: Opening schedule (for the “Open now” indicator)
+            widget: object
+            required: false
+            fields:
+              - name: days
+                label: Open on
+                widget: select
+                multiple: true
+                options:
+                  - { label: Monday, value: 1 }
+                  - { label: Tuesday, value: 2 }
+                  - { label: Wednesday, value: 3 }
+                  - { label: Thursday, value: 4 }
+                  - { label: Friday, value: 5 }
+                  - { label: Saturday, value: 6 }
+                  - { label: Sunday, value: 0 }
+              - { name: open, label: Opens (HH:MM), widget: string, default: '07:00' }
+              - { name: close, label: Closes (HH:MM), widget: string, default: '18:00' }
+              - { name: timezone, label: Time zone, widget: string, default: Europe/Tirane }
+          - { name: mapUrl, label: Google Maps link, widget: string, required: false }
+          - name: social
+            label: Social links
+            widget: object
+            fields:
+              - { name: instagram, label: Instagram, widget: string, required: false }
+              - { name: facebook, label: Facebook, widget: string, required: false }
+              - { name: linkedin, label: LinkedIn, widget: string, required: false }
+              - { name: youtube, label: YouTube, widget: string, required: false }
+          - name: partners
+            label: Partner brands
+            widget: list
+            summary: '{{fields.name}}'
+            fields:
+              - { name: name, label: Name, widget: string }
+              - { name: logo, label: Logo (transparent PNG/WebP, tightly cropped), widget: image }
+              - name: material
+                label: Profile type
+                widget: select
+                options:
+                  - { label: PVC profiles, value: pvc }
+                  - { label: Aluminium systems, value: aluminium }
+              - { name: country, label: Country code (e.g. DE, GR, IT), widget: string, required: false }
+              - { name: systems, label: Systems we install, widget: list, required: false, hint: 'e.g. greenEvolution, S67' }
+              - { name: website, label: Manufacturer website, widget: string, required: false }

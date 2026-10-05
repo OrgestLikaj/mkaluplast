@@ -1,0 +1,681 @@
+---
+import { getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import ProductTile from '../components/ProductTile.astro';
+import PostCard from '../components/PostCard.astro';
+import FaqList from '../components/FaqList.astro';
+import CtaBand from '../components/CtaBand.astro';
+import PartnerCards from '../components/PartnerCards.astro';
+import ProcessSteps from '../components/ProcessSteps.astro';
+import { getProducts, getPosts, getPage, site, hoursFor } from '../lib/content';
+import { companyStats } from '../lib/stats';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const home = (await getEntry('home', lang))!.data;
+const faq = (await getEntry('faq', lang))?.data.items ?? [];
+const products = await getProducts(lang);
+const posts = (await getPosts(lang)).slice(0, 3);
+
+// The About teaser reuses the About page's copy so it's edited in one place.
+const about = (await getPage(lang, 'about'))?.data;
+const aboutStats = (await companyStats(lang, about?.foundedYear)).slice(about?.foundedYear ? 1 : 0);
+// Skip the first reason (“Experience since …”) — the headline and badge already say it.
+const aboutPoints = (about?.reasons ?? []).slice(1, 5);
+
+// Bento layout on a 6-col grid: first two cards span 3 cols, the rest span 2.
+// Widen the trailing cards so the last row never leaves a gap.
+const rest = (products.length - 2) % 3;
+const spanFor = (i: number): 'wide' | 'full' | '' => {
+  if (i < 2) return 'wide';
+  if (rest === 2 && i >= products.length - 2) return 'wide';
+  if (rest === 1 && i === products.length - 1) return 'full';
+  return '';
+};
+
+const why = [
+  { icon: 'thermo', title: t('why.insulation'), text: t('why.insulationText') },
+  { icon: 'sound', title: t('why.acoustic'), text: t('why.acousticText') },
+  { icon: 'shield', title: t('why.security'), text: t('why.securityText') },
+  { icon: 'ruler', title: t('why.custom'), text: t('why.customText') },
+] as const;
+
+const alternates = routes.home;
+
+const orgLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HomeAndConstructionBusiness',
+  name: site.name,
+  url: Astro.site?.href,
+  logo: new URL('/uploads/logo-mk-aluplast.webp', Astro.site).href,
+  telephone: site.phone || undefined,
+  email: site.email || undefined,
+  address: site.address
+    ? { '@type': 'PostalAddress', streetAddress: site.address, addressLocality: site.city, addressCountry: site.country }
+    : undefined,
+  sameAs: Object.values(site.social).filter(Boolean),
+};
+---
+
+<Base lang={lang} title={site.name} description={home.heroSubtitle} image={home.heroImage} alternates={alternates} overlayHeader>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(orgLd)} />
+
+  <!-- Hero -->
+  <section class="hero">
+    <img class="hero-img" src={home.heroImage} alt="" fetchpriority="high" width="2000" height="1200" />
+    <div class="hero-shade"></div>
+    <div class="container hero-inner">
+      <h1>{home.heroTitle}</h1>
+      <p class="hero-sub">{home.heroSubtitle}</p>
+      <div class="hero-cta">
+        <a class="btn btn--light" href={route(lang, 'contact')}>
+          {t('cta.button')}
+          <Icon name="arrow" />
+        </a>
+        <a class="btn btn--ghost-light" href={route(lang, 'products')}>{t('home.explore')}</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  {
+    about && (
+      <section class="section about-home">
+        <div class="container ah-grid">
+          <div class="ah-media" data-reveal>
+            {home.aboutImage && (
+              <img class="ah-main" src={home.aboutImage} alt="" loading="lazy" decoding="async" width="900" height="1100" />
+            )}
+            {home.aboutImageSecondary && (
+              <img class="ah-second" src={home.aboutImageSecondary} alt="" loading="lazy" decoding="async" width="500" height="500" />
+            )}
+            {about.foundedYear && (
+              <div class="ah-card">
+                <strong>{about.foundedYear}</strong>
+                <span>
+                  {site.country ? `${t('about.foundedIn')} ${site.country}` : t('about.founded')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div class="ah-text">
+            <p class="eyebrow" data-reveal>{t('about.eyebrow')}</p>
+            <h2 data-reveal>{about.headline || about.title}</h2>
+            {about.statement && (
+              <p class="lead" data-reveal style="--delay:.08s">
+                {about.statement}
+              </p>
+            )}
+            {aboutPoints.length > 0 && (
+              <ul class="ah-points" data-reveal style="--delay:.14s">
+                {aboutPoints.map((r) => (
+                  <li>
+                    <span class="tick">
+                      <Icon name="check" size={16} />
+                    </span>
+                    {r.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div class="ah-cta" data-reveal style="--delay:.2s">
+              <a class="btn" href={route(lang, 'about')}>
+                {t('about.more')}
+                <Icon name="arrow" />
+              </a>
+              {site.phone && (
+                <a class="ah-phone" href={`tel:${site.phone}`}>
+                  <Icon name="phone" size={18} />
+                  {site.phoneDisplay || site.phone}
+                </a>
+              )}
+            </div>
+
+            {aboutStats.length > 0 && (
+              <dl class="ah-stats" data-reveal style="--delay:.26s">
+                {aboutStats.map((st) => (
+                  <div>
+                    <dt>{st.label}</dt>
+                    <dd>{st.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Products -->
+  <section class="section section--stone" id="products">
+    <div class="container">
+      <div class="section-head section-head--split" data-reveal>
+        <div>
+          <p class="eyebrow">{t('home.productsEyebrow')}</p>
+          <h2>{t('home.productsTitle')}</h2>
+        </div>
+        <a class="link-arrow end" href={route(lang, 'products')}>
+          {t('nav.allProducts')}
+          <Icon name="arrow" />
+        </a>
+      </div>
+      <div class="product-grid">
+        {
+          products.map((p, i) => (
+            <div data-reveal style={`--delay:${(i % 3) * 0.08}s`} class={spanFor(i)}>
+              <ProductTile product={p} lang={lang} index={i} total={products.length} size={spanFor(i)} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Partners -->
+  {
+    site.partners.length > 0 && (
+      <section class="section" id="partners">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('partners.eyebrow')}</p>
+              <h2>{t('home.partners')}</h2>
+            </div>
+            <p>{t('partners.text')}</p>
+          </div>
+          <PartnerCards lang={lang} />
+        </div>
+      </section>
+    )
+  }
+
+  <!-- Why -->
+  <section class="section section--ink">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">{t('home.whyEyebrow')}</p>
+        <h2>{t('home.whyTitle')}</h2>
+      </div>
+      <ul class="why">
+        {
+          why.map((w, i) => (
+            <li data-reveal style={`--delay:${i * 0.08}s`}>
+              <Icon name={w.icon} size={32} />
+              <h3>{w.title}</h3>
+              <p>{w.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Process -->
+  {home.steps.length > 0 && <ProcessSteps lang={lang} steps={home.steps} />}
+
+  <!-- Journal -->
+  {
+    posts.length > 0 && (
+      <section class="section section--stone">
+        <div class="container">
+          <div class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="eyebrow">{t('home.journalEyebrow')}</p>
+              <h2>{t('home.journalTitle')}</h2>
+            </div>
+            <a class="link-arrow end" href={route(lang, 'blog')}>
+              {t('blog.back')}
+              <Icon name="arrow" />
+            </a>
+          </div>
+          <div class="posts">
+            {posts.map((p, i) => (
+              <div data-reveal style={`--delay:${i * 0.08}s`}>
+                <PostCard post={p} lang={lang} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- FAQ -->
+  {
+    faq.length > 0 && (
+      <section class="section">
+        <div class="container faq-wrap">
+          <div class="faq-side">
+            <div class="faq-sticky">
+              <div class="faq-head" data-reveal>
+                <p class="eyebrow">{t('home.faqEyebrow')}</p>
+                <h2>{t('home.faqTitle')}</h2>
+                <p class="faq-lead">{t('faq.lead')}</p>
+                <a class="link-arrow" href={route(lang, 'faq')}>
+                  {t('faq.more')} ({faq.length})
+                  <Icon name="arrow" />
+                </a>
+              </div>
+
+              <div class="help" data-reveal>
+                <p class="help-title">{t('faq.helpTitle')}</p>
+                <p class="help-text">{t('faq.helpText')}</p>
+                {site.phone && (
+                  <a class="help-phone" href={`tel:${site.phone}`}>
+                    <span class="help-icon">
+                      <Icon name="phone" size={18} />
+                    </span>
+                    <span>
+                      <strong>{site.phoneDisplay || site.phone}</strong>
+                      {hoursFor(lang) && <small>{hoursFor(lang)}</small>}
+                    </span>
+                  </a>
+                )}
+                <a class="btn btn--light help-btn" href={route(lang, 'contact')}>
+                  {t('faq.ask')}
+                  <Icon name="arrow" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="faq-list" data-reveal style="--delay:.1s">
+            <FaqList items={faq.slice(0, 5)} />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: min(100svh, 980px);
+    display: flex;
+    align-items: flex-end;
+    color: #fff;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    animation: hero-zoom 14s var(--ease) both;
+  }
+  .hero-shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(to top, rgba(10, 13, 34, 0.85) 0%, rgba(10, 13, 34, 0.35) 45%, rgba(10, 13, 34, 0.25) 100%),
+      linear-gradient(to right, rgba(10, 13, 34, 0.5), transparent 70%);
+  }
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  .hero-inner {
+    padding-top: calc(var(--header-h) + 4rem);
+    padding-bottom: clamp(3.5rem, 9vw, 7rem);
+  }
+  .hero h1 {
+    color: #fff;
+    max-width: 13ch;
+    margin-bottom: 1.5rem;
+    animation: rise 1.1s var(--ease) 0.15s both;
+  }
+  .hero-sub {
+    font-size: clamp(1.03rem, 1.5vw, 1.27rem);
+    max-width: 46ch;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 2.5rem;
+    animation: rise 1.1s var(--ease) 0.3s both;
+  }
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    animation: rise 1.1s var(--ease) 0.45s both;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+  }
+
+  /* ---------- About teaser ---------- */
+  .ah-grid {
+    display: grid;
+    gap: 3.5rem;
+    align-items: center;
+  }
+  @media (min-width: 1000px) {
+    .ah-grid {
+      grid-template-columns: 1fr 1.05fr;
+      gap: 6rem;
+    }
+  }
+  .ah-media {
+    position: relative;
+    padding: 0 14% 14% 0;
+  }
+  .ah-main {
+    width: 100%;
+    aspect-ratio: 4 / 4.6;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+  }
+  .ah-second {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 46%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    border: 8px solid #fff;
+    box-shadow: 0 30px 60px -30px rgba(14, 19, 48, 0.45);
+  }
+  .ah-card {
+    position: absolute;
+    left: clamp(-1rem, -2vw, 0rem);
+    bottom: 22%;
+    display: grid;
+    gap: 0.15rem;
+    padding: 1.1rem 1.4rem;
+    background: var(--navy);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 48px -24px rgba(39, 50, 114, 0.7);
+  }
+  .ah-card strong {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .ah-card span {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .ah-text h2 {
+    max-width: 14ch;
+  }
+  .ah-text .lead {
+    max-width: 52ch;
+    margin-bottom: 2rem;
+  }
+  .ah-points {
+    list-style: none;
+    margin: 0 0 2.25rem;
+    padding: 0;
+    display: grid;
+    gap: 0.9rem 1.5rem;
+  }
+  @media (min-width: 560px) {
+    .ah-points {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .ah-points li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-display);
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .tick {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--steel-50);
+    color: var(--navy);
+  }
+  .ah-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+  }
+  .ah-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .ah-phone:hover {
+    color: var(--navy);
+  }
+  .ah-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin: 3rem 0 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+  }
+  .ah-stats div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .ah-stats dd {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.76rem, 3.17vw, 2.55rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .ah-stats dt {
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+
+  .end {
+    justify-self: start;
+  }
+  @media (min-width: 900px) {
+    .end {
+      justify-self: end;
+    }
+  }
+
+  .product-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .product-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1000px) {
+    .product-grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+    .product-grid > div {
+      grid-column: span 2;
+    }
+    .product-grid > .wide {
+      grid-column: span 3;
+    }
+    .product-grid > .full {
+      grid-column: span 6;
+    }
+  }
+
+
+  .why {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  @media (min-width: 700px) {
+    .why {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1100px) {
+    .why {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .why li {
+    background: var(--ink);
+    padding: 2.5rem 2rem;
+  }
+  .why :global(svg) {
+    color: var(--steel);
+    margin-bottom: 2.5rem;
+  }
+  .why h3 {
+    margin-bottom: 0.75rem;
+  }
+  .why p {
+    margin: 0;
+    color: #a8adc4;
+    font-size: 0.97rem;
+  }
+
+  .posts {
+    display: grid;
+    gap: 2.5rem 1.75rem;
+  }
+  .posts > div {
+    display: flex;
+  }
+  .posts > div > :global(*) {
+    flex: 1;
+  }
+  @media (min-width: 800px) {
+    .posts {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .faq-wrap {
+    display: grid;
+    gap: 3rem 6rem;
+  }
+  /* Phones: heading → questions → help card (desktop keeps help in the sticky column) */
+  @media (max-width: 959px) {
+    .faq-side,
+    .faq-sticky {
+      display: contents;
+    }
+    .faq-list {
+      order: 2;
+    }
+    .help {
+      order: 3;
+      margin-top: 0 !important;
+    }
+  }
+  @media (min-width: 960px) {
+    .faq-wrap {
+      grid-template-columns: 1fr 1.6fr;
+      align-items: start;
+    }
+    .faq-sticky {
+      position: sticky;
+      top: calc(var(--header-h) + 3rem);
+    }
+  }
+  .faq-side h2 {
+    max-width: 10ch;
+  }
+  .faq-lead {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 34ch;
+  }
+  .help {
+    margin-top: 2.5rem;
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(198, 211, 227, 0.18), transparent 55%),
+      var(--navy);
+    color: #dfe4f2;
+  }
+  .help-title {
+    margin: 0 0 0.35rem;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  .help-text {
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+  }
+  .help-phone {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    text-decoration: none;
+  }
+  .help-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: background 0.3s var(--ease);
+  }
+  .help-phone:hover .help-icon {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .help-phone strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .help-phone small {
+    display: block;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.65);
+  }
+  .help-btn {
+    width: 100%;
+  }
+</style>

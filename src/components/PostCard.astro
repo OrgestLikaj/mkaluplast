@@ -1,0 +1,177 @@
+---
+import Icon from './Icon.astro';
+import type { CollectionEntry } from 'astro:content';
+import { splitId, readingTime } from '../lib/content';
+import { blogUrl, dateLocale, useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  lang: Lang;
+  /** Large split layout used for the featured article. */
+  featured?: boolean;
+  /** Language of the article URL, when it differs from the page (untranslated fallback). */
+  linkLang?: Lang;
+}
+const { post, lang, featured = false, linkLang = lang } = Astro.props;
+const t = useTranslations(lang);
+const { title, excerpt, cover, coverAlt, date, topic } = post.data;
+const formatted = date.toLocaleDateString(dateLocale(lang), {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+---
+
+<article class:list={['post', { featured }]}>
+  <a href={blogUrl(linkLang, splitId(post.id).slug)}>
+    <div class="media">
+      {
+        cover && (
+          <img
+            src={cover}
+            alt={coverAlt}
+            loading={featured ? 'eager' : 'lazy'}
+            decoding="async"
+            width={featured ? 1200 : 720}
+            height={featured ? 750 : 480}
+          />
+        )
+      }
+      {topic && <span class="topic">{t(`cat.${topic}`)}</span>}
+    </div>
+    <div class="body">
+      {featured && <p class="kicker">{t('blog.latest')}</p>}
+      <h3>{title}</h3>
+      <p class="excerpt">{excerpt}</p>
+      <p class="meta">
+        <time datetime={date.toISOString()}>{formatted}</time>
+        <span aria-hidden="true">·</span>
+        <span>{readingTime(post.body)} {t('blog.minRead')}</span>
+      </p>
+      {
+        featured && (
+          <span class="link-arrow more">
+            {t('blog.readMore')}
+            <Icon name="arrow" />
+          </span>
+        )
+      }
+    </div>
+  </a>
+</article>
+
+<style>
+  a {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+  .media {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--steel-50), var(--stone-100));
+    margin-bottom: 1.25rem;
+  }
+  .media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1.2s var(--ease);
+  }
+  a:hover img {
+    transform: scale(1.05);
+  }
+  .topic {
+    position: absolute;
+    left: 1rem;
+    top: 1rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  h3 {
+    margin: 0 0 0.6rem;
+    transition: color 0.3s;
+  }
+  a:hover h3 {
+    color: var(--navy);
+  }
+  .excerpt {
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin: 0 0 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .meta {
+    display: flex;
+    gap: 0.5rem;
+    margin: auto 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  /* ---------- Featured ---------- */
+  .featured a {
+    display: grid;
+    gap: 2rem;
+  }
+  @media (min-width: 900px) {
+    .featured a {
+      grid-template-columns: 1.25fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+  }
+  .featured .media {
+    aspect-ratio: 16 / 10;
+    margin: 0;
+  }
+  .kicker {
+    margin: 0 0 1rem;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .featured h3 {
+    font-size: clamp(1.5rem, 2.64vw, 2.29rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    margin-bottom: 1rem;
+  }
+  .featured .excerpt {
+    font-size: 1.08rem;
+    -webkit-line-clamp: 4;
+    margin-bottom: 1.25rem;
+  }
+  .featured .meta {
+    margin: 0 0 1.75rem;
+  }
+  .more {
+    align-self: flex-start;
+  }
+  .featured a:hover .more :global(svg) {
+    transform: translateX(4px);
+  }
+</style>

@@ -1,0 +1,130 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductTile from '../components/ProductTile.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { getProducts, groupByCategory } from '../lib/content';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const groups = groupByCategory(await getProducts(lang));
+
+// Card width follows group size on the 6-col grid: 1 → full row, 2 → halves, 3 → thirds.
+const sizeFor = (count: number): 'wide' | 'full' | '' =>
+  count === 1 ? 'full' : count % 3 === 0 ? '' : 'wide';
+const lead = t('products.lead');
+---
+
+<Base lang={lang} title={t('nav.products')} description={lead} alternates={routes.products}>
+  <section class="page-hero">
+    <div class="container">
+      <ol class="breadcrumbs">
+        <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+        <li aria-current="page">{t('nav.products')}</li>
+      </ol>
+      <h1>{t('home.productsTitle')}</h1>
+      <p class="lead">{lead}</p>
+      <nav class="jump" aria-label={t('nav.products')}>
+        {groups.map(({ cat }) => <a href={`#${cat}`}>{t(`cat.${cat}`)}</a>)}
+      </nav>
+    </div>
+  </section>
+
+  {
+    groups.map(({ cat, items }, gi) => (
+      <section class:list={['section', { 'section--stone': gi % 2 === 1 }]} id={cat}>
+        <div class="container">
+          <div class="group-head" data-reveal>
+            <span class="idx">{String(gi + 1).padStart(2, '0')}</span>
+            <h2>{t(`cat.${cat}`)}</h2>
+          </div>
+          <div class="grid">
+            {items.map((p, i) => (
+              <div data-reveal style={`--delay:${i * 0.08}s`} class={sizeFor(items.length)}>
+                <ProductTile product={p} lang={lang} size={sizeFor(items.length)} hideCategory />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ))
+  }
+
+  <CtaBand lang={lang} />
+</Base>
+
+<style>
+  .jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2.5rem;
+  }
+  .jump a {
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--stone-200);
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    background: #fff;
+    transition:
+      border-color 0.2s,
+      color 0.2s;
+  }
+  .jump a:hover {
+    border-color: var(--navy);
+    color: var(--navy);
+  }
+  .section {
+    padding-block: clamp(3.5rem, 7vw, 6rem);
+  }
+  .group-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 1.25rem;
+  }
+  .group-head h2 {
+    margin: 0;
+    font-size: clamp(1.58rem, 2.64vw, 2.29rem);
+  }
+  .idx {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--navy);
+  }
+  .grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .grid > .full {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (min-width: 1000px) {
+    .grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+    .grid > div {
+      grid-column: span 2;
+    }
+    .grid > .wide {
+      grid-column: span 3;
+    }
+    .grid > .full {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

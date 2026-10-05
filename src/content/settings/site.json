@@ -1,0 +1,77 @@
+{
+  "name": "MK AluPlast",
+  "tagline": "Modern Windows. Secure Doors. Trusted Quality.",
+  "phone": "+355688282474",
+  "phoneDisplay": "+355 68 82 82 474",
+  "email": "",
+  "whatsapp": "",
+  "address": "",
+  "city": "",
+  "country": "Albania",
+  "hours": "Monday to Saturday, 07:00 to 18:00",
+  "hoursIt": "Dal lunedì al sabato, 07:00–18:00",
+  "hoursSq": "E hënë – e shtunë, 07:00–18:00",
+  "schedule": {
+    "days": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "open": "07:00",
+    "close": "18:00",
+    "timezone": "Europe/Tirane"
+  },
+  "mapUrl": "",
+  "social": {
+    "instagram": "https://www.instagram.com/mkaluplast/",
+    "facebook": "",
+    "linkedin": "",
+    "youtube": ""
+  },
+  "partners": [
+    {
+      "name": "Salamander",
+      "logo": "/uploads/partner-salamander-logo.webp",
+      "material": "pvc",
+      "country": "DE",
+      "systems": [
+        "greenEvolution",
+        "bluEvolution"
+      ],
+      "website": "https://www.salamander-windows.com"
+    },
+    {
+      "name": "Alumil",
+      "logo": "/uploads/partner-alumil-logo.webp",
+      "material": "aluminium",
+      "country": "GR",
+      "systems": [
+        "M11000",
+        "S67",
+        "S77",
+        "S560",
+        "S350"
+      ],
+      "website": "https://www.alumil.com"
+    },
+    {
+      "name": "Everest Aluminium",
+      "logo": "/uploads/partner-everest-logo.webp",
+      "material": "aluminium",
+      "country": "",
+      "systems": [],
+      "website": ""
+    },
+    {
+      "name": "Weiss Profil",
+      "logo": "/uploads/partner-weiss-profil-logo.webp",
+      "material": "pvc",
+      "country": "",
+      "systems": [],
+      "website": ""
+    }
+  ]
+}
