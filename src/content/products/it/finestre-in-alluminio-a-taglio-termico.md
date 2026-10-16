@@ -1,5 +1,5 @@
 ---
-title: "Finestre in alluminio a taglio termico"
+title: "Finestre in alluminio con taglio termico"
 translationKey: "thermal-aluminum-windows"
 category: "windows"
 order: 11

@@ -63,7 +63,7 @@ const orgLd = {
 };
 ---
 
-<Base lang={lang} title={site.name} description={home.heroSubtitle} image={home.heroImage} alternates={alternates} overlayHeader>
+<Base lang={lang} title={t('seo.home')} description={home.heroSubtitle} image={home.heroImage} alternates={alternates} overlayHeader>
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(orgLd)} />
 
   <!-- Hero -->

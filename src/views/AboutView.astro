@@ -25,7 +25,7 @@ const iconFor = (name: string | undefined, i: number): IconName =>
   (fallbackIcons as readonly string[]).includes(name ?? '') ? (name as IconName) : fallbackIcons[i % fallbackIcons.length];
 ---
 
-<Base lang={lang} title={d.title} description={d.seoDescription || d.lead} image={d.heroImage} alternates={routes.about}>
+<Base lang={lang} title={t('seo.about')} description={d.seoDescription || d.lead} image={d.heroImage} alternates={routes.about}>
   <!-- Hero -->
   <section class="a-hero">
     <div class="container a-hero-inner">

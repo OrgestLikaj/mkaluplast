@@ -16,24 +16,19 @@ ErrorDocument 404 /404.html
   # Never serve PHP helper includes directly
   RewriteRule (^|/)_[^/]*\.php$ - [F,L]
 
-  # ---- Redirects from the old WordPress site (keep SEO) ----
-  RewriteRule ^about-company/?$ /about/ [R=301,L]
-  RewriteRule ^contact-us/?$ /contact/ [R=301,L]
-  RewriteRule ^faqs/?$ /faq/ [R=301,L]
-  RewriteRule ^(partners|careers)/?$ /about/ [R=301,L]
-  RewriteRule ^category/blog/?$ /blog/ [R=301,L]
-  RewriteRule ^author/ /blog/ [R=301,L]
-  RewriteRule ^feed/?$ /blog/ [R=301,L]
-  RewriteRule ^[0-9]{4}/[0-9]{2}/[0-9]{2}/([^/]+)/?$ /blog/$1/ [R=301,L]
-  RewriteRule ^it/faq-domande-frequenti/?$ /it/faq/ [R=301,L]
-  RewriteRule ^it/[0-9]{4}/[0-9]{2}/[0-9]{2}/([^/]+)/?$ /it/blog/$1/ [R=301,L]
-  RewriteRule ^it/informazioni-sullazienda/?$ /it/chi-siamo/ [R=301,L]
-  RewriteRule ^it/contattaci/?$ /it/contatti/ [R=301,L]
-  RewriteRule ^it/(partneri|carriere)/?$ /it/chi-siamo/ [R=301,L]
-  RewriteRule ^it/category/ /it/blog/ [R=301,L]
+  # ---- Old WordPress URLs ----
+  # Pages, products, /category/blog/ and /YYYY/MM/DD/<slug>/ articles keep their
+  # exact old URLs, so they need no redirect. Only pages that were not rebuilt move:
+  RewriteRule ^careers/?$ /contact-us/ [R=301,L]
+  RewriteRule ^it/carriere/?$ /it/contattaci/ [R=301,L]
+  RewriteRule ^author/ /category/blog/ [R=301,L]
+  RewriteRule ^(it/)?feed/?$ /$1category/blog/ [R=301,L]
+  RewriteRule ^it/2026/05/21/3047/?$ /it/category/blog/ [R=301,L]
 
   # Old WordPress system URLs are gone for good
   RewriteRule ^(wp-admin|wp-login\.php|wp-content|wp-includes|xmlrpc\.php) - [G,L]
+  RewriteRule ^(it/)?wp-sitemap-users-1\.xml$ - [G,L]
+  RewriteRule ^ndiqni-raportimin-tuaj/?$ - [G,L]
 
   # Add trailing slash to directory-style URLs (Astro builds /page/index.html)
   RewriteCond %{REQUEST_FILENAME} !-f

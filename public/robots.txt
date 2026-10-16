@@ -2,4 +2,6 @@ User-agent: *
 Disallow: /admin/
 Disallow: /oauth/
 
-Sitemap: https://mkaluplast.com/sitemap-index.xml
+Sitemap: https://mkaluplast.com/wp-sitemap.xml
+Sitemap: https://mkaluplast.com/it/wp-sitemap.xml
+Sitemap: https://mkaluplast.com/sq/wp-sitemap.xml

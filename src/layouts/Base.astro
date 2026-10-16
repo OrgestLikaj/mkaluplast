@@ -27,7 +27,8 @@ const {
   noindex = false,
 } = Astro.props;
 
-const fullTitle = title === site.name ? title : `${title} | ${site.name}`;
+// Same format as the old WordPress site: "PVC Windows – MK AluPlast".
+const fullTitle = title.startsWith(site.name) ? title : `${title} – ${site.name}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image, Astro.site);
 const allAlternates = { ...alternates, [lang]: Astro.url.pathname };
@@ -64,7 +65,7 @@ const t = useTranslations(lang);
     <meta name="theme-color" content="#273272" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="sitemap" href="/wp-sitemap.xml" />
     <script is:inline>
       document.documentElement.classList.add('js');
     </script>

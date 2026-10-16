@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import PartnerCards from '../components/PartnerCards.astro';
+import CtaBand from '../components/CtaBand.astro';
+import { useTranslations, route, routes, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<Base lang={lang} title={t('seo.partners')} description={t('partners.text')} alternates={routes.partners}>
+  <section class="page-hero">
+    <div class="container">
+      <ol class="breadcrumbs">
+        <li><a href={route(lang, 'home')}>{t('nav.home')}</a></li>
+        <li aria-current="page">{t('nav.partners')}</li>
+      </ol>
+      <h1>{t('home.partners')}</h1>
+      <p class="lead">{t('partners.text')}</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <PartnerCards lang={lang} />
+    </div>
+  </section>
+  <CtaBand lang={lang} />
+</Base>

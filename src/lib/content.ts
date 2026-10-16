@@ -51,7 +51,7 @@ export async function alternatesFor(
   for (const e of entries) {
     if (e.data.translationKey !== translationKey) continue;
     const { lang, slug } = splitId(e.id);
-    out[lang] = collection === 'products' ? productUrl(lang, slug) : blogUrl(lang, slug);
+    out[lang] = e.collection === 'posts' ? blogUrl(lang, slug, e.data.date) : productUrl(lang, slug);
   }
   return out;
 }

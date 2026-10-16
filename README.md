@@ -22,13 +22,16 @@ All content is in `src/content/`, one folder per language:
 
 | What | Where | URL |
 |---|---|---|
-| Products | `products/{en,it,sq}/<slug>.md` | `/<slug>/`, `/it/<slug>/` (same URLs as the old WordPress site), `/sq/<slug>/` |
-| Blog | `posts/{en,it,sq}/<slug>.md` | `/blog/<slug>/`, `/it/blog/<slug>/`, `/sq/blog/<slug>/` |
-| About page | `pages/{en,it,sq}/about.md` | `/about/`, `/it/chi-siamo/`, `/sq/rreth-nesh/` |
+| Products | `products/{en,it,sq}/<slug>.md` | `/<slug>/`, `/it/<slug>/`, `/sq/<slug>/` |
+| Blog | `posts/{en,it,sq}/<slug>.md` | `/YYYY/MM/DD/<slug>/` (from the post date), same under `/it/` and `/sq/`; index at `/category/blog/` |
+| About page | `pages/{en,it,sq}/about.md` | `/about-company/`, `/it/informazioni-sullazienda/`, `/sq/rreth-kompanise/` |
 | Homepage texts | `home/{en,it,sq}.json` | `/`, `/it/`, `/sq/` |
-| FAQ | `faq/{en,it,sq}.json` | `/faq/`, `/it/faq/`, `/sq/pyetje/` |
+| FAQ | `faq/{en,it,sq}.json` | `/faqs/`, `/it/faq-domande-frequenti/`, `/sq/pyetje-te-shpeshta/` |
+| Contact / Partners | (UI texts + `settings/site.json`) | `/contact-us/`, `/partners/`, `/it/contattaci/`, `/it/partneri/`, `/sq/na-kontaktoni/`, `/sq/partneret/` |
 | Phone, email, address, partners | `settings/site.json` | everywhere |
 | Images | `public/uploads/` | `/uploads/…` |
+
+**URLs and SEO match the old WordPress site exactly**: every EN and IT URL from its sitemap is a real page at the same address (no redirects), titles use the same `Page – MK AluPlast` format, and the sitemaps are served at the same WordPress URLs (`/wp-sitemap.xml`, `/it/wp-sitemap.xml`, plus `/sq/wp-sitemap.xml`) by `src/pages/[...sitemap].ts`. Route paths live in `routes` in `src/i18n/ui.ts`.
 
 `translationKey` links an English entry to its Italian and Albanian translations, so all of them must use the same value. UI labels (buttons, menu) live in `src/i18n/ui.ts`; the language-switcher flags are `public/flags/<locale>.svg` (from the MIT-licensed flag-icons project).
 

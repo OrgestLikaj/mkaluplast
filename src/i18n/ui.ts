@@ -14,15 +14,17 @@ export const ogLocales: Record<Lang, string> = {
   sq: 'sq_AL',
 };
 
-// Section paths that differ per language. Product pages live at the root
-// (e.g. /pvc-windows/, /it/persiane/, /sq/grila/) to keep the old WordPress URLs.
+// Section paths that differ per language. EN and IT paths are exactly the old
+// WordPress URLs (pages, /category/blog/, product slugs at the root) so search
+// rankings carry over without redirects. SQ is new and follows the same shape.
 export const routes = {
   home: { en: '/', it: '/it/', sq: '/sq/' },
   products: { en: '/products/', it: '/it/prodotti/', sq: '/sq/produkte/' },
-  about: { en: '/about/', it: '/it/chi-siamo/', sq: '/sq/rreth-nesh/' },
-  contact: { en: '/contact/', it: '/it/contatti/', sq: '/sq/kontakt/' },
-  faq: { en: '/faq/', it: '/it/faq/', sq: '/sq/pyetje/' },
-  blog: { en: '/blog/', it: '/it/blog/', sq: '/sq/blog/' },
+  about: { en: '/about-company/', it: '/it/informazioni-sullazienda/', sq: '/sq/rreth-kompanise/' },
+  contact: { en: '/contact-us/', it: '/it/contattaci/', sq: '/sq/na-kontaktoni/' },
+  partners: { en: '/partners/', it: '/it/partneri/', sq: '/sq/partneret/' },
+  faq: { en: '/faqs/', it: '/it/faq-domande-frequenti/', sq: '/sq/pyetje-te-shpeshta/' },
+  blog: { en: '/category/blog/', it: '/it/category/blog/', sq: '/sq/category/blog/' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type RouteKey = keyof typeof routes;
@@ -31,6 +33,14 @@ export const ui = {
   en: {
     'nav.home': 'Home',
     'nav.products': 'Products',
+    'nav.partners': 'Partners',
+    'seo.home': 'MK AluPlast – Modern Windows. Secure Doors. Trusted Quality.',
+    'seo.about': 'About Company',
+    'seo.contact': 'Contact Us',
+    'seo.faq': 'FAQs',
+    'seo.blog': 'Blog',
+    'seo.partners': 'Partners',
+    'seo.products': 'Products',
     'nav.about': 'About',
     'nav.blog': 'Journal',
     'nav.faq': 'FAQ',
@@ -199,6 +209,14 @@ export const ui = {
   it: {
     'nav.home': 'Home',
     'nav.products': 'Prodotti',
+    'nav.partners': 'Partner',
+    'seo.home': 'MK AluPlast – Finestre moderne. Porte sicure. Qualità garantita.',
+    'seo.about': 'Informazioni sull’azienda',
+    'seo.contact': 'Contattaci',
+    'seo.faq': 'FAQ – Domande Frequenti',
+    'seo.blog': 'Blog',
+    'seo.partners': 'Partneri',
+    'seo.products': 'Prodotti',
     'nav.about': 'Chi siamo',
     'nav.blog': 'Blog',
     'nav.faq': 'FAQ',
@@ -366,6 +384,14 @@ export const ui = {
   },
   sq: {
     'nav.home': 'Kreu',
+    'nav.partners': 'Partnerët',
+    'seo.home': 'MK AluPlast – Dritare moderne. Dyer të sigurta. Cilësi e besueshme.',
+    'seo.about': 'Rreth kompanisë',
+    'seo.contact': 'Na kontaktoni',
+    'seo.faq': 'Pyetje të shpeshta',
+    'seo.blog': 'Blog',
+    'seo.partners': 'Partnerët',
+    'seo.products': 'Produktet',
     'nav.products': 'Produktet',
     'nav.about': 'Rreth nesh',
     'nav.blog': 'Blog',
@@ -549,8 +575,10 @@ export function productUrl(lang: Lang, slug: string) {
   return lang === defaultLang ? `/${slug}/` : `/${lang}/${slug}/`;
 }
 
-export function blogUrl(lang: Lang, slug: string) {
-  return `${routes.blog[lang]}${slug}/`;
+/** Article URL in the old WordPress permalink format: /2026/02/14/<slug>/ (prefixed per locale). */
+export function blogUrl(lang: Lang, slug: string, date: Date) {
+  const [y, m, d] = date.toISOString().slice(0, 10).split('-');
+  return `${routes.home[lang]}${y}/${m}/${d}/${slug}/`;
 }
 
 export function dateLocale(lang: Lang) {

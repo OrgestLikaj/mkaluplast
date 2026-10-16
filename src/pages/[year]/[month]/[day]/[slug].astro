@@ -1,0 +1,17 @@
+---
+import PostView from '../../../../views/PostView.astro';
+import { getPosts, splitId } from '../../../../lib/content';
+
+// Old WordPress permalinks: /YYYY/MM/DD/<slug>/
+export async function getStaticPaths() {
+  const posts = await getPosts('en');
+  return posts.map((post) => {
+    const [year, month, day] = post.data.date.toISOString().slice(0, 10).split('-');
+    return { params: { year, month, day, slug: splitId(post.id).slug }, props: { post } };
+  });
+}
+
+const { post } = Astro.props;
+---
+
+<PostView lang="en" post={post} />

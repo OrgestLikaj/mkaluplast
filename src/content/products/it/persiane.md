@@ -1,5 +1,5 @@
 ---
-title: "Persiane e avvolgibili"
+title: "Persiane"
 translationKey: "shutters"
 category: "shutters"
 order: 30

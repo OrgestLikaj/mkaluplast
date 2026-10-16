@@ -23,7 +23,7 @@ const formatted = date.toLocaleDateString(dateLocale(lang), {
 ---
 
 <article class:list={['post', { featured }]}>
-  <a href={blogUrl(linkLang, splitId(post.id).slug)}>
+  <a href={blogUrl(linkLang, splitId(post.id).slug, post.data.date)}>
     <div class="media">
       {
         cover && (

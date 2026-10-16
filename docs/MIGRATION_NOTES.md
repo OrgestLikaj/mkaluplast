@@ -47,35 +47,20 @@ Italian counterparts were found through each EN page's `hreflang="it"` alternate
 | /careers/, /it/carriere/ | not migrated (see issues) |
 | /category/blog/, /it/category/blog/ | replaced by the new blog index |
 
-## 2. Redirect map (old to new)
+## 2. URL map (old to new)
 
-Product URLs keep their slugs, so they need no redirect: `/pvc-windows/` stays `/pvc-windows/`, `/it/persiane/` stays `/it/persiane/`, and so on for all 10 products in both languages.
+Since 2026-10-16 the new site uses **the exact old URLs**: every EN and IT page, product, the dated blog permalinks (`/2026/02/14/<slug>/`) and `/category/blog/` exist at the same address, so no redirects are needed and the old `/wp-sitemap.xml` keeps working. A Partners page was rebuilt at `/partners/` and `/it/partneri/` from the partner data. Titles follow the old `Page – MK AluPlast` format and match the old ones word for word, except the IT home, which now uses an Italian tagline instead of the untranslated English one.
+
+Only these old URLs have no page; `public/.htaccess` handles them:
 
 ```
-# Blog
-/2026/02/14/flyscreen-systems-fresh-air-without-insects-and-without-compromising-style/   /blog/flyscreen-systems-fresh-air-without-insects-and-without-compromising-style/   301
-/2026/02/14/how-to-reduce-outside-noise-with-better-windows-and-doors/                     /blog/how-to-reduce-outside-noise-with-better-windows-and-doors/                     301
-/2026/02/14/partition-walls-a-smart-way-to-create-more-space-without-major-construction/   /blog/partition-walls-a-smart-way-to-create-more-space-without-major-construction/   301
-/2026/02/14/pvc-vs-aluminium-windows-which-one-is-better-for-insulation-and-comfort/       /blog/pvc-vs-aluminium-windows-which-one-is-better-for-insulation-and-comfort/       301
-/2026/02/14/rolling-shutters-security-shade-and-better-energy-efficiency-in-one-upgrade/   /blog/rolling-shutters-security-shade-and-better-energy-efficiency-in-one-upgrade/   301
-/category/blog/                     /blog/        301
-/it/category/blog/                  /it/blog/     301
-/it/2026/05/21/3047/                /it/blog/     301   (broken IT post, already 404 on the old site)
-# Generic pattern for any IT post that gets added later: /it/YYYY/MM/DD/<slug>/ -> /it/blog/<slug>/
-
-# Pages
-/about-company/                     /about/       301
-/it/informazioni-sullazienda/       /it/about/    301
-/contact-us/                        /contact/     301
-/it/contattaci/                     /it/contact/  301
-/faqs/                              /faq/         301
-/it/faq-domande-frequenti/          /it/faq/      301
-
-# Pages not rebuilt (send to a sensible destination until the client provides content)
-/partners/                          /about/       302
-/it/partneri/                       /it/about/    302
-/careers/                           /contact/     302
-/it/carriere/                       /it/contact/  302
+/careers/                 -> /contact-us/            301  (old page had no real job content)
+/it/carriere/             -> /it/contattaci/         301
+/author/orgest/           -> /category/blog/         301
+/feed/, /it/feed/         -> blog index              301
+/it/2026/05/21/3047/      -> /it/category/blog/      301  (already 404 on the old site)
+/ndiqni-raportimin-tuaj/                             410  (test page from another plugin)
+/wp-sitemap-users-1.xml                              410
 ```
 
 ## 3. Images
