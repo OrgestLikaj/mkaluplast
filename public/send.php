@@ -40,8 +40,13 @@ if (!empty($_POST['website']) || ($ts > 0 && (microtime(true) * 1000 - $ts) < 25
     respond(200, ['ok' => true]); // pretend success, silently drop
 }
 
+// mbstring is not always enabled on shared hosting; PCRE's /u is a UTF-8-safe fallback.
+$cut = function_exists('mb_substr')
+    ? static fn(string $s, int $max): string => mb_substr($s, 0, $max)
+    : static fn(string $s, int $max): string => preg_match('/^.{0,' . $max . '}/su', $s, $m) ? $m[0] : '';
+
 $clean = static fn(string $key, int $max): string =>
-    trim(mb_substr(str_replace(["\r", "\0"], '', (string) ($_POST[$key] ?? '')), 0, $max));
+    trim($cut(str_replace(["\r", "\0"], '', (string) ($_POST[$key] ?? '')), $max));
 
 $name    = $clean('name', 120);
 $email   = $clean('email', 160);
