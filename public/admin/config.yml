@@ -261,6 +261,7 @@ collections:
           - { name: address, label: Street address, widget: string, required: false }
           - { name: city, label: City, widget: string, required: false }
           - { name: country, label: Country, widget: string, required: false }
+          - { name: areaServed, label: Countries we work in, widget: list, required: false, hint: 'Main markets, in English (e.g. Albania, Italy, United Kingdom). Tells Google where the business works; projects elsewhere are still welcome.' }
           - { name: hours, label: Opening hours (English), widget: string, required: false }
           - { name: hoursIt, label: Opening hours (Italiano), widget: string, required: false }
           - { name: hoursSq, label: Opening hours (Shqip), widget: string, required: false }

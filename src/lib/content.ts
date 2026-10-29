@@ -56,6 +56,12 @@ export async function alternatesFor(
   return out;
 }
 
+/** Main markets for schema.org `areaServed` (the business also takes projects elsewhere). */
+export function areaServedLd() {
+  const countries = site.areaServed ?? [];
+  return countries.length ? countries.map((name) => ({ '@type': 'Country', name })) : undefined;
+}
+
 /** Opening hours in the visitor's language (falls back to English). */
 export function hoursFor(lang: Lang) {
   const localized: Partial<Record<Lang, string>> = { it: site.hoursIt, sq: site.hoursSq };

@@ -5,7 +5,7 @@ import Icon from '../components/Icon.astro';
 import QuoteForm from '../components/QuoteForm.astro';
 import OpenStatus from '../components/OpenStatus.astro';
 import FaqList from '../components/FaqList.astro';
-import { site, hoursFor } from '../lib/content';
+import { site, hoursFor, areaServedLd } from '../lib/content';
 import { useTranslations, route, routes, type Lang } from '../i18n/ui';
 
 interface Props {
@@ -35,6 +35,7 @@ const localBusinessLd = {
   address: site.address
     ? { '@type': 'PostalAddress', streetAddress: site.address, addressLocality: site.city, addressCountry: site.country }
     : undefined,
+  areaServed: areaServedLd(),
   openingHoursSpecification: site.schedule
     ? {
         '@type': 'OpeningHoursSpecification',

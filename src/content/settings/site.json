@@ -8,6 +8,11 @@
   "address": "",
   "city": "",
   "country": "Albania",
+  "areaServed": [
+    "Albania",
+    "Italy",
+    "United Kingdom"
+  ],
   "hours": "Monday to Saturday, 07:00 to 18:00",
   "hoursIt": "Dal lunedì al sabato, 07:00–18:00",
   "hoursSq": "E hënë – e shtunë, 07:00–18:00",

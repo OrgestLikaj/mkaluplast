@@ -8,7 +8,7 @@ import FaqList from '../components/FaqList.astro';
 import CtaBand from '../components/CtaBand.astro';
 import PartnerCards from '../components/PartnerCards.astro';
 import ProcessSteps from '../components/ProcessSteps.astro';
-import { getProducts, getPosts, getPage, site, hoursFor } from '../lib/content';
+import { getProducts, getPosts, getPage, site, hoursFor, areaServedLd } from '../lib/content';
 import { companyStats } from '../lib/stats';
 import { useTranslations, route, routes, type Lang } from '../i18n/ui';
 
@@ -59,6 +59,7 @@ const orgLd = {
   address: site.address
     ? { '@type': 'PostalAddress', streetAddress: site.address, addressLocality: site.city, addressCountry: site.country }
     : undefined,
+  areaServed: areaServedLd(),
   sameAs: Object.values(site.social).filter(Boolean),
 };
 ---

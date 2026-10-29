@@ -6,7 +6,7 @@ import ProductTile from '../components/ProductTile.astro';
 import TypeExplorer from '../components/TypeExplorer.astro';
 import Gallery from '../components/Gallery.astro';
 import CtaBand from '../components/CtaBand.astro';
-import { getProducts, alternatesFor, site } from '../lib/content';
+import { getProducts, alternatesFor, site, areaServedLd } from '../lib/content';
 import { useTranslations, route, type Lang } from '../i18n/ui';
 
 interface Props {
@@ -50,13 +50,24 @@ const sections = [
   d.gallery.length > 0 && { id: 'gallery', label: t('product.gallery') },
 ].filter(Boolean) as { id: string; label: string }[];
 
-const productLd = {
+// Made to measure and quoted per project, so there is no price, rating or review to
+// publish. Marked up as a Service: `Product` without offers/review/aggregateRating is
+// flagged as a critical "Product snippets" error in Search Console.
+const serviceLd = {
   '@context': 'https://schema.org',
-  '@type': 'Product',
+  '@type': 'Service',
   name: d.title,
+  serviceType: d.title,
   description: d.seoDescription || d.summary,
   image: new URL(d.heroImage, Astro.site).href,
-  brand: { '@type': 'Brand', name: site.name },
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  areaServed: areaServedLd(),
+  provider: {
+    '@type': 'HomeAndConstructionBusiness',
+    name: site.name,
+    url: new URL(route(lang, 'home'), Astro.site).href,
+    telephone: site.phone || undefined,
+  },
 };
 const crumbsLd = {
   '@context': 'https://schema.org',
@@ -77,7 +88,7 @@ const crumbsLd = {
   alternates={alternates}
   overlayHeader
 >
-  <script slot="head" type="application/ld+json" set:html={JSON.stringify([productLd, crumbsLd])} />
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify([serviceLd, crumbsLd])} />
 
   <!-- Hero -->
   <section class="p-hero">
